@@ -13,20 +13,20 @@ dependencies:
   - QuickCheck
 
 library:
-  source-dirs: lib
+  source-dirs: .
 
-executables:
-  myprogram:
-    main: Main.lhs
-    source-dirs: exec
-    dependencies:
-      - report
+# executables:
+#   myprogram:
+#     main: Main.lhs
+#     source-dirs: exec
+#     dependencies:
+#       - report
 
-tests:
-  simpletests:
-    main: simpletests.lhs
-    source-dirs: test
-    dependencies:
-      - report
-      - QuickCheck
-      - hspec
+# tests:
+#   simpletests:
+#     main: simpletests.lhs
+#     source-dirs: test
+#     dependencies:
+#       - report
+#       - QuickCheck
+#       - hspec
