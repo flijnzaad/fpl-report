@@ -1,20 +1,17 @@
 \documentclass[12pt,a4paper]{article}
 \input{latexmacros.tex}
 
-\title{My Report}
-\author{Me}
+\title{Functional Programming \& Constraint Programming}
+\author{Flip Lijnzaad and Jasper Stammes}
 \date{\today}
-\hypersetup{pdfauthor={Me}, pdftitle={My Report}}
+\hypersetup{pdfauthor={Flip Lijnzaad, Jasper Stammes}, pdftitle={Functional Programming \& Constraint Programming}}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-We give a toy example of a report in \emph{literate programming} style.
-The main advantage of this is that source code and documentation can
-be written and presented next to each other.
-We use the listings package to typeset Haskell source code nicely.
+This is where the abstract should go
 \end{abstract}
 
 \vfill
@@ -26,17 +23,13 @@ We use the listings package to typeset Haskell source code nicely.
 % We include one file for each section. The ones containing code should
 % be called something.lhs and also mentioned in the .cabal file.
 
-\input{Howto.tex}
+\input{1_CSP.lhs}
 
-\input{lib/Basics.lhs}
+\input{2_arc-consistency.tex}
 
-\input{exec/Main.lhs}
+\input{3_ac3.lhs}
 
-\input{test/simpletests.lhs}
-
-\input{Profiling.tex}
-
-\input{Conclusion.tex}
+\input{4_sudoku.lhs}
 
 \addcontentsline{toc}{section}{Bibliography}
 \bibliographystyle{alpha}
