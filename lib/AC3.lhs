@@ -3,6 +3,7 @@
 \begin{code}
 module AC3 where
 
+import Data.List
 import CSP
 -- implementation of the AC-3 function, recursive version of the pseudocode in
 -- the book; calls `revise` helper function. the book version passes a queue
@@ -50,4 +51,9 @@ revise (arc, rel) (varX, x:xs) (varY, ys) =
 -- prepend a value to the value list of a domain (the second argument of the tuple)
 prependToSnd :: Value -> Domain -> Domain
 prependToSnd x (varX, xs) = (varX, x:xs)
+
+-- since ac3 outputs a CSP including all of the constraints, we use this to return only the domain. Note that the problem has a unique solution if all problems have size 1
+
+ac3domain :: [Variable] -> [Domain] -> [Constraint] -> [Domain]
+ac3domain vars doms cons = let (CSP _ y _, _, _) = ac3 (CSP vars doms cons, True, cons) in sortBy (\(a,_) (b,_) -> compare a b) y
 \end{code}

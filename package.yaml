@@ -13,7 +13,7 @@ dependencies:
   - QuickCheck
 
 library:
-  source-dirs: .
+  source-dirs: lib
 
 # executables:
 #   myprogram:

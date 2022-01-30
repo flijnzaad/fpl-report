@@ -3,9 +3,6 @@
 \begin{code}
 module CSP where
 
-import Data.List
-import Data.Char
-
 -- type definitions based on formal definition of CSP in book
 type Variable   = Int 
 type Value      = Int

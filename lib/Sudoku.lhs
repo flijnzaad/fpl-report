@@ -3,7 +3,9 @@
 \begin{code}
 module Sudoku where
 
+import CSP
 import AC3
+import Data.Char
 -- given a variable we create the arcs that correspond to all other variables in the same square, row or column
 generateSudokuConstraints :: [Variable] -> [Constraint]
 generateSudokuConstraints [] = []
@@ -30,11 +32,6 @@ sudokuVars = [0..80]
 
 -- test: ac3 (CSP sudokuVars (generateSudokuDomains sudoku1) (generateSudokuConstraints sudokuVars), True, generateSudokuConstraints sudokuVars)
 -- test: ac3domain sudokuVars (generateSudokuDomains sudoku1) (generateSudokuConstraints sudokuVars)
-
--- since ac3 outputs a CSP including all of the constraints, we use this to return only the domain. Note that the problem has a unique solution if all problems have size 1
-
-ac3domain :: [Variable] -> [Domain] -> [Constraint] -> [Domain]
-ac3domain vars doms cons = let (CSP _ y _, _, _) = ac3 (CSP vars doms cons, True, cons) in sortBy (\(a,_) (b,_) -> compare a b) y
 
 -- prints a sudoku
 printSudoku :: [Domain] -> IO ()
