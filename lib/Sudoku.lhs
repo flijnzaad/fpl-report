@@ -5,6 +5,7 @@ module Sudoku where
 
 import CSP
 import AC3
+import Data.List
 import Data.Char
 -- given a variable we create the arcs that correspond to all other variables in the same square, row or column
 generateSudokuConstraints :: [Variable] -> [Constraint]
@@ -53,6 +54,8 @@ printSudoku ((n, val@(value:_)):xs) =
       then putStr "\n"
       else putStr ""
     do printSudoku xs
+-- (to avoid warning about non-exhaustive cases)
+printSudoku _ = putStr ""
 
 -- solves sudoku in "sudoku.txt" in current directory
 solveSudokuFromFile :: IO ()

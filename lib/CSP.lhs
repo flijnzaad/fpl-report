@@ -9,7 +9,7 @@ type Value      = Int
 type Domain     = (Variable, [Value])
 type Arc        = (Variable, Variable)
 type Constraint = ( Arc, [(Value, Value)] )
-data Problem    = CSP { vars :: [Variable]
-                      , doms :: [Domain]
-                      , cons :: [Constraint] } deriving Show
+data Problem    = CSP { variables   :: [Variable]
+                      , domains     :: [Domain]
+                      , constraints :: [Constraint] } deriving Show
 \end{code}

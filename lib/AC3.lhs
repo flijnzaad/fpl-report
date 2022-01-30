@@ -3,8 +3,8 @@
 \begin{code}
 module AC3 where
 
-import Data.List
 import CSP
+import Data.List
 -- implementation of the AC-3 function, recursive version of the pseudocode in
 -- the book; calls `revise` helper function. the book version passes a queue
 -- of arcs; we use a list of constraints, since those contain the arcs
@@ -26,7 +26,7 @@ ac3 (p@(CSP vars doms cons), True, ((varX, varY), rel):xs) =
     -- delete x's old domain and add x's new domain to the list of domains
     newDoms    = newXDomain : delete (strongLookup varX doms) doms
     -- append to the arc queue xs the neighbors of x by filtering on (_, x)
-    newQueue   = xs ++ filter (\(arc, rel) -> snd arc == varX) cons
+    newQueue   = xs ++ filter (\(arc, _) -> snd arc == varX) cons
 
 -- perform lookup and drop the Maybe
 strongLookup :: Variable -> [Domain] -> Domain
@@ -37,7 +37,7 @@ revise :: Constraint -> Domain -> Domain -> Domain
 -- trivial case: if there are no constraints, pass a domain with empty list of values
 revise (_ , []) (varX,  _) _ = (varX, [])
 -- if the domain for x is empty, pass domain with empty list of values for x
-revise (_, rel) (varX, []) _ = (varX, [])
+revise (_, _) (varX, []) _ = (varX, [])
 -- else, perform body of the `for each` loop
 revise (arc, rel) (varX, x:xs) (varY, ys) =
   if any (\y -> (x, y) `elem` rel) ys
