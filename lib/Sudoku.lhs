@@ -60,7 +60,7 @@ printSudoku _ = putStr ""
 -- solves sudoku in "sudoku.txt" in current directory
 solveSudokuFromFile :: IO ()
 solveSudokuFromFile = do
-  sudokuString <- readFile "aux/sudoku.txt"
+  sudokuString <- readFile "sudoku/sudoku.txt"
   -- make the string into a list of Ints
   let values = map digitToInt sudokuString
   -- solve the sudoku and print it

@@ -2,7 +2,7 @@
 
 Optional: to generate a new sudoku, run:
 ```
-cd aux/ && python3 generate_sudoku.py
+cd sudoku/ && python3 generate_sudoku.py
 ```
 
 If the Python program does not terminate, <kbd>Ctrl</kbd> + <kbd>C</kbd> and
