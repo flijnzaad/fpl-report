@@ -21,11 +21,11 @@ We have chosen to represent the 81 squares of the grid as numbers between 0 and 
 
 The domain of each empty square of a sudoku is $[1,9]$; the domain of a square filled with some $x$ is $[x]$.
 
+\todo[inline]{say something about the Python code and its formatting: we input the sudoku we want to solve as a string where empty cells are zeroes, a zero means the starting domain can be anything in [1..9], if the cell is given its domain has just that element}
+
 \begin{code}
--- we input the sudoku we want to solve as a string where empty cells are zeroes
 generateSudokuDomains :: [Value] -> [Domain]
 generateSudokuDomains [] = []
--- a zero means the starting domain can be anything in [1..9], if the cell is given its domain has just that element
 generateSudokuDomains (x:xs) | x == 0    = (80 - length xs, [1..9]):generateSudokuDomains xs
                              | otherwise = (80 - length xs, [x]):generateSudokuDomains xs
 \end{code}
@@ -52,13 +52,13 @@ The row, column and block constraints are dependent on the position of the varia
   (filter (/=n) (
     nub (
       -- rows
-         [n + i   | i <- [- (n `mod` 9)         .. 8 - n `mod` 9]]
+         [n - (n `mod` 9) + i | i <- [0..8]]
       -- columns
-      ++ [n + 9*j | j <- [- (n `div` 9 `mod` 9) .. 8 - (n `div` 9 `mod` 9)]]
+      ++ [n `mod` 9 + 9 * j   | j <- [0..8]]
       -- blocks
-      ++ [n + i + 9*j |
-        i <- [- (n `mod` 3)         .. 2 - (n `mod` 3)],
-        j <- [- (n `div` 9 `mod` 3) .. 2 - (n `div` 9 `mod` 3)]]
+      ++ [n + (i - (n `mod` 3)) + 9*(j-(n `div` 9 `mod` 3)) |
+          i <- [0..2],
+          j <- [0..2]]
     )
   ))
   ++ generateSudokuConstraints xs
