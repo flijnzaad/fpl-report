@@ -17,7 +17,7 @@ sudokuVars = [0..80]
 \end{code}
 
 We have chosen to represent the 81 squares of the grid as numbers between 0 and 80.
-% say something about being in line with the CSP definition
+\todo[inline]{say something about being in line with the CSP definition}
 
 The domain of each empty square of a sudoku is $[1,9]$; the domain of a square filled with some $x$ is $[x]$.
 
@@ -39,25 +39,36 @@ The allowable values for the pair $\langle n, x \rangle$ are then all $y_1, y_2 
 \begin{code}
 generateSudokuConstraints :: [Variable] -> [Constraint]
 generateSudokuConstraints [] = []
--- given an arc, all pairs with type (Value, Value) with different digits are allowed
 generateSudokuConstraints (n:xs) =
-  map (\x -> ((n,x), [(y1,y2) | y1 <-[1..9], y2 <- [1..9], y1 /= y2]))
+  map (\x -> ( (n,x), [(y1,y2) | y1 <- [1..9], y2 <- [1..9], y1 /= y2] ) )
 \end{code}
 
+The row, column and block constraints are dependent on the position of the variable $n$ within the grid.
+
 \begin{code}
--- the other variables in the square are found by finding the x-axis and y-axis position of the current variable in its square
 -- eg if the y position is the middle row of the 3x3 square we have (n div 9) mod 3 == 1, and so we find the other square variables by also looking the row above (j = -1) and below (j = 1)
+      -- the variables in its row are found by subtracting until we get a multiple of 9 and by adding until the next one
+      -- and the same action for the column are found by taking the y position
   (filter (/=n) (
     nub (
-      [n + i + 9*j | i <- [- (n `mod` 3) .. 2- (n `mod` 3)], j <- [- (n `div` 9 `mod` 3) .. 2- (n `div` 9 `mod` 3)]]
-      -- the variables in its row are found by subtracting until we get a multiple of 9 and by adding until the next one
-      ++ [n + i | i <- [- (n `mod` 9) .. 8 - n `mod` 9]]
-      -- and the same action for the column are found by taking the y position
-      ++ [n + 9*i | i <- [- (n `div` 9 `mod` 9) .. 8- (n `div` 9 `mod` 9)]]
+      -- rows
+         [n + i   | i <- [- (n `mod` 9)         .. 8 - n `mod` 9]]
+      -- columns
+      ++ [n + 9*j | j <- [- (n `div` 9 `mod` 9) .. 8 - (n `div` 9 `mod` 9)]]
+      -- blocks
+      ++ [n + i + 9*j |
+        i <- [- (n `mod` 3)         .. 2 - (n `mod` 3)],
+        j <- [- (n `div` 9 `mod` 3) .. 2 - (n `div` 9 `mod` 3)]]
     )
   ))
   ++ generateSudokuConstraints xs
+\end{code}
 
+We \verb|filter| the output such that there will not be an arc $ \langle n, n \rangle $ in the constraints, since there will be no assignment that satisfies the constraint $n \neq n$.
+Moreover, we use \verb|nub| to ensure that there are no duplicate constraints.
+\todo[inline]{mention something about double constraints because (x,y) /= (y, x)}
+
+\begin{code}
 -- test: ac3 (CSP sudokuVars (generateSudokuDomains sudoku1) (generateSudokuConstraints sudokuVars), True, generateSudokuConstraints sudokuVars)
 -- test: ac3domain sudokuVars (generateSudokuDomains sudoku1) (generateSudokuConstraints sudokuVars)
 
