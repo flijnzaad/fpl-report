@@ -37,8 +37,11 @@ So a variable $n$ is a member of all arcs $\langle n, x \rangle$ where $x$ is a 
 The allowable values for the pair $\langle n, x \rangle$ are then all $y_1, y_2 \in \{ 1, \ldots, 9 \}$ such that $y_1 \neq y_2$.
 
 \begin{code}
+-- precalculate this to make computation more efficient
 varGrid :: [(Variable, (Value, Value))]
 varGrid = zip [0..80] [ (i,j) | i <- [0..8], j <- [0..8] ]
+varToCoords :: Variable -> (Value, Value)
+varToCoords n = fromJust $ lookup n varGrid
 generateSudokuConstraints :: [Variable] -> [Constraint]
 generateSudokuConstraints [] = []
 generateSudokuConstraints (n:xs) =
@@ -63,12 +66,14 @@ The code for obtaining the variables in $n$'s block is more complex.
     nub (
       -- rows
          [m | m <- [0..80],
-              fst (fromJust $ lookup m varGrid) == fst (fromJust $ lookup n varGrid)]
+              (fst $ varToCoords m) == (fst $ varToCoords n)]
       -- columns
       ++ [m | m <- [0..80],
-              snd (fromJust $ lookup m varGrid) == snd (fromJust $ lookup n varGrid)]
+              (snd $ varToCoords m) == (snd $ varToCoords n)]
       -- blocks
-      ++ [n - (n `mod` 3) + i + 9 * (j - ((n `div` 9) `mod` 3)) | i <- [0..2], j <- [0..2]]
+      ++ [m | m <- [0..80],
+              (fst $ varToCoords m) `div` 3 == (fst $ varToCoords n) `div` 3,
+              (snd $ varToCoords m) `div` 3 == (snd $ varToCoords n) `div` 3]
     )
   ))
   ++ generateSudokuConstraints xs
