@@ -61,16 +61,16 @@ To obtain the variables in the same $3 \times 3$ block as $n$, we check if the $
     (
       -- rows
         [m | m <- [0..80], m /= n,
-              (fst $ varToCoords m) == (fst $ varToCoords n)]
+              fst (varToCoords m) == fst (varToCoords n)]
       -- columns
       ++ [m | m <- [0..80], m /= n,
-              (snd $ varToCoords m) == (snd $ varToCoords n)]
+              snd (varToCoords m) == snd (varToCoords n)]
       -- blocks
       ++ [m | m <- [0..80], m /= n,
-              (fst $ varToCoords m) /= (fst $ varToCoords n),
-              (snd $ varToCoords m) /= (fst $ varToCoords n),
-              (fst $ varToCoords m) `div` 3 == (fst $ varToCoords n) `div` 3,
-              (snd $ varToCoords m) `div` 3 == (snd $ varToCoords n) `div` 3]
+              fst (varToCoords m) /= fst (varToCoords n),
+              snd (varToCoords m) /= fst (varToCoords n),
+              fst (varToCoords m) `div` 3 == fst (varToCoords n) `div` 3,
+              snd (varToCoords m) `div` 3 == snd (varToCoords n) `div` 3]
     )
       ++ generateSudokuConstraints xs
 \end{code}
