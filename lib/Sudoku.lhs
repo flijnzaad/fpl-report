@@ -11,9 +11,7 @@ import CSP
 import AC3
 import Data.List
 import Data.Char
-
-sudokuVars :: [Variable]
-sudokuVars = [0..80]
+import Data.Maybe
 \end{code}
 
 We have chosen to represent the 81 squares of the grid as numbers between 0 and 80.
@@ -39,6 +37,8 @@ So a variable $n$ is a member of all arcs $\langle n, x \rangle$ where $x$ is a 
 The allowable values for the pair $\langle n, x \rangle$ are then all $y_1, y_2 \in \{ 1, \ldots, 9 \}$ such that $y_1 \neq y_2$.
 
 \begin{code}
+varGrid :: [(Variable, (Value, Value))]
+varGrid = zip [0..80] [ (i,j) | i <- [0..8], j <- [0..8] ]
 generateSudokuConstraints :: [Variable] -> [Constraint]
 generateSudokuConstraints [] = []
 generateSudokuConstraints (n:xs) =
@@ -62,9 +62,11 @@ The code for obtaining the variables in $n$'s block is more complex.
   (filter (/=n) (
     nub (
       -- rows
-         [n - (n `mod` 9) + i | i <- [0..8]]
+         [m | m <- [0..80],
+              fst (fromJust $ lookup m varGrid) == fst (fromJust $ lookup n varGrid)]
       -- columns
-      ++ [n `mod` 9 + 9 * j   | j <- [0..8]]
+      ++ [m | m <- [0..80],
+              snd (fromJust $ lookup m varGrid) == snd (fromJust $ lookup n varGrid)]
       -- blocks
       ++ [n - (n `mod` 3) + i + 9 * (j - ((n `div` 9) `mod` 3)) | i <- [0..2], j <- [0..2]]
     )
@@ -110,5 +112,5 @@ solveSudokuFromFile = do
   -- make the string into a list of Ints
   let values = map digitToInt sudokuString
   -- solve the sudoku and print it
-  do printSudoku $ ac3domain sudokuVars (generateSudokuDomains values) (generateSudokuConstraints sudokuVars)
+  do printSudoku $ ac3domain [0..80] (generateSudokuDomains values) (generateSudokuConstraints [0..80])
 \end{code}
