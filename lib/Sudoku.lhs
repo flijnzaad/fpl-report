@@ -9,8 +9,9 @@ module Sudoku where
 
 import CSP
 import AC3
-import Data.Char
-import Data.Maybe
+import Data.Char        -- for using "digitToInt"
+import Data.Maybe       -- for using "fromJust"
+import Control.Monad    -- for using "when"
 \end{code}
 
 We have chosen to represent the 81 squares of the grid as numbers between 0 and 80.
@@ -78,34 +79,29 @@ To obtain the variables in the same $3 \times 3$ block as $n$, we check if the $
 The list comprehension contains the Boolean condition $m \neq n$ to ensure that there will not be an arc $\langle n, n \rangle$ in the constraints, since there will be no assignment that satisfies the constraint $n \neq n$.
 Moreover, the list comprehension for the block constraints ensures that variables in the same row or column are ignored, since those have already been taken into account.
 
-\begin{code}
--- test: ac3 (CSP sudokuVars (generateSudokuDomains sudoku1) (generateSudokuConstraints sudokuVars), True, generateSudokuConstraints sudokuVars)
--- test: ac3domain sudokuVars (generateSudokuDomains sudoku1) (generateSudokuConstraints sudokuVars)
+The \verb|printSudoku| function takes the list of \verb|Domain|s of a sudoku and prints the (partially) solved sudoku in a readable format using spaces and newlines.
+If the list of possible values for a variable only contains one element, this element may be printed; if it does not, then the value of that variable is as of yet undetermined and an underscore is printed to indicate this.
 
--- prints a sudoku
+\begin{code}
 printSudoku :: [Domain] -> IO ()
--- base case recursion: done printing
 printSudoku [] = putStr ""
 printSudoku ((n, val@(value:_)):xs) =
   do
+    -- put the number there if determined, else _
     putStr (if val == [value] then show value else "_")
-    if n `mod` 3 == 2
-       -- put spaces between different blocks
-      then putStr " "
-      else putStr ""
-    if n `mod` 9 == 8
-       -- put newlines at the end of rows
-      then putStr "\n"
-      else putStr ""
-    if n `mod` 27 == 26
-       -- put extra newlines to vertically separate blocks
-      then putStr "\n"
-      else putStr ""
+    -- put spaces between different blocks
+    when (n `mod` 3  == 2)  (putStr " ")
+    -- put newlines at the end of rows
+    when (n `mod` 9  == 8)  (putStr "\n")
+    -- put extra newlines to vertically separate blocks
+    when (n `mod` 27 == 26) (putStr "\n")
     do printSudoku xs
 -- (to avoid warning about non-exhaustive cases)
 printSudoku _ = putStr ""
+\end{code}
 
--- solves sudoku in "sudoku.txt" in current directory
+\begin{code}
+-- solves the available sudoku in "sudoku.txt" in the "sudoku/" subdirectory
 solveSudokuFromFile :: IO ()
 solveSudokuFromFile = do
   sudokuString <- readFile "sudoku/sudoku.txt"
