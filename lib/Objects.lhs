@@ -22,9 +22,6 @@ data Junction   = L LineID LineID JunctionID
 data Line       = Line JunctionID JunctionID LineID
 type Object = ([Junction], [Line])
 
-cube :: Object
-cube = ([Arrow (-1) (-2) (-3) 0, L (-3) (-4) 1, Arrow (-4) (-5) (-6) 2, L (-6) (-7) 3, Arrow (-7) (-8) (-9) 4, L (-9) (-1) 5, Fork (-2) (-5) (-8) 6],
-        [Line 0 5 (-1), Line 0 6 (-2), Line 0 1 (-3), Line 1 2 (-4), Line 2 6 (-5), Line 2 3 (-6), Line 3 4 (-7), Line 4 6 (-8), Line 4 5 (-9)])
 
 -- The Object type is nice and readable, this function generates the correct csp. 
 -- It preserves the LineIDs and JunctionIDs used in the Object def. 
@@ -74,5 +71,21 @@ cspGeneration (xs, (Line i j id):ys) maxID    = CSP (id:vars) ((id,[-2..maxID]):
         [(line,junction) | line<-[0..maxID], junction<-[0,1,2,3,4,5,12,20,21,22,23,24,30]])
     ] ++ cons) where
     CSP vars doms cons = cspGeneration (xs, ys) maxID
+
+-- Input the outline arrows as a first step. The JunctionID corresponding to a LineID is the origin of the direction over the line
+setInitialObjectDomains :: [Domain] -> [(LineID,JunctionID)] -> [Domain]
+setInitialObjectDomains doms [] = doms
+setInitialObjectDomains doms ((line,junction):xs) = (line,[junction]):filter (\x -> fst x /= line) doms
+
+cube :: Object
+cube = ([Arrow (-1) (-2) (-3) 0, L (-3) (-4) 1, Arrow (-4) (-5) (-6) 2, L (-6) (-7) 3, Arrow (-7) (-8) (-9) 4, L (-9) (-1) 5, Fork (-2) (-5) (-8) 6],
+        [Line 0 5 (-1), Line 0 6 (-2), Line 0 1 (-3), Line 1 2 (-4), Line 2 6 (-5), Line 2 3 (-6), Line 3 4 (-7), Line 4 6 (-8), Line 4 5 (-9)])
+
+cubeArrows :: [(LineID,JunctionID)]
+cubeArrows = [(-1,5),(-3,0),(-4,1),(-6,2),(-7,3),(-9,4)]
+
+cubeCSPtest :: Problem 
+cubeCSPtest = CSP vars (setInitialObjectDomains doms cubeArrows) cons
+  where CSP vars doms cons = cspGeneration cube 6 
 
 \end{code}
