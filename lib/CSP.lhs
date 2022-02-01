@@ -1,4 +1,4 @@
-\section{Constraint satisfaction problems}
+\section{Constraint satisfaction problems}\label{sec:CSP}
 
 \begin{code}
 module CSP where

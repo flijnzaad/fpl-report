@@ -1,5 +1,7 @@
 \section{The AC-3 algorithm}
 
+This functional implementation of the AC-3 algorithm is based on the imperative pseudocode in \cite[p.~209]{AIMA}.
+
 \begin{code}
 module AC3 where
 
