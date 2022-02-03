@@ -26,8 +26,8 @@ Since a \verb|Domain| in our \verb|CSP| definition also consists of the variable
 generateSudokuDomains :: [Value] -> [Domain]
 generateSudokuDomains [] = []
 generateSudokuDomains (x:xs)
-    | x == 0    = (80 - length xs, [1..9]):generateSudokuDomains xs
-    | otherwise = (80 - length xs, [x]   ):generateSudokuDomains xs
+    | x == 0    = (Var (80 - length xs), (map Val [1..9])):generateSudokuDomains xs
+    | otherwise = (Var (80 - length xs), [x]):generateSudokuDomains xs
 \end{code}
 
 Arguably the most interesting part now is how the constraints for each variable are generated.
@@ -35,9 +35,9 @@ To be able to formulate the constraints in an intuitive way, the function \verb|
 \verb|varToCoords| functions as a wrapper around the \verb|varGrid| to eliminate some duplicate code.
 
 \begin{code}
-varGrid :: [(Variable, (Value, Value))]
-varGrid = zip [0..80] [ (i,j) | i <- [0..8], j <- [0..8] ]
-varToCoords :: Variable -> (Value, Value)
+varGrid :: [(Variable, (Int, Int))]
+varGrid = zip (map Var [0..80]) [ (i,j) | i <- [0..8], j <- [0..8] ]
+varToCoords :: Variable -> (Int, Int)
 varToCoords n = fromJust $ lookup n varGrid
 \end{code}
 
@@ -50,7 +50,7 @@ The allowable values for the pair $\langle n, x \rangle$ are then all $y_1, y_2 
 generateSudokuConstraints :: [Variable] -> [Constraint]
 generateSudokuConstraints [] = []
 generateSudokuConstraints (n:xs) =
-  map (\x -> ( (n,x), [(y1,y2) | y1 <- [1..9], y2 <- [1..9], y1 /= y2] ) )
+  map (\x -> ( (n,x), [(y1,y2) | y1 <- (map Val [1..9]), y2 <- (map Val [1..9]), y1 /= y2] ) )
 \end{code}
 
 The row, column and block constraints are dependent on the position of the variable $n$ within the grid.
@@ -61,13 +61,13 @@ To obtain the variables in the same $3 \times 3$ block as $n$, we check if the $
 \begin{code}
     (
       -- rows
-        [m | m <- [0..80], m /= n,
+         [m | m <- (map Var [0..80]), m /= n,
               fst (varToCoords m) == fst (varToCoords n)]
       -- columns
-      ++ [m | m <- [0..80], m /= n,
+      ++ [m | m <- (map Var [0..80]), m /= n,
               snd (varToCoords m) == snd (varToCoords n)]
       -- blocks
-      ++ [m | m <- [0..80], m /= n,
+      ++ [m | m <- (map Var [0..80]), m /= n,
               fst (varToCoords m) /= fst (varToCoords n),
               snd (varToCoords m) /= fst (varToCoords n),
               fst (varToCoords m) `div` 3 == fst (varToCoords n) `div` 3,
@@ -90,15 +90,17 @@ printSudoku ((n, val@(value:_)):xs) =
     -- put the number there if determined, else _
     putStr (if val == [value] then show value else "_")
     -- put spaces between different blocks
-    when (n `mod` 3  == 2)  (putStr " ")
+    when ((getVar n) `mod` 3  == 2)  (putStr " ")
     -- put newlines at the end of rows
-    when (n `mod` 9  == 8)  (putStr "\n")
+    when ((getVar n) `mod` 9  == 8)  (putStr "\n")
     -- put extra newlines to vertically separate blocks
-    when (n `mod` 27 == 26) (putStr "\n")
+    when ((getVar n) `mod` 27 == 26) (putStr "\n")
     do printSudoku xs
 -- (to avoid warning about non-exhaustive cases)
 printSudoku _ = putStr ""
 \end{code}
+
+\todo[inline]{add explanations here}
 
 \begin{code}
 -- solves the available sudoku in "sudoku.txt" in the "sudoku/" subdirectory
@@ -106,7 +108,7 @@ solveSudokuFromFile :: IO ()
 solveSudokuFromFile = do
   sudokuString <- readFile "sudoku/sudoku.txt"
   -- make the string into a list of Ints
-  let values = map digitToInt sudokuString
+  let values = map (Val . digitToInt) sudokuString
   -- solve the sudoku and print it
-  do printSudoku $ ac3domain [0..80] (generateSudokuDomains values) (generateSudokuConstraints [0..80])
+  do printSudoku $ ac3domain (map Var [0..80]) (generateSudokuDomains values) (generateSudokuConstraints (map Var [0..80]))
 \end{code}
