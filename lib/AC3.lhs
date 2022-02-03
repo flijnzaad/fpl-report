@@ -27,6 +27,8 @@ ac3 (p, False, _) = (p, False, [])
 ac3 (p, True, []) = (p, True,  [])
 \end{code}
 
+In the recursive case, the first constraint in the constraint queue is considered.
+
 \begin{code}
 ac3 (p@(CSP doms cons), True, ((x, y), rel):queue) =
   if getVarDomain x doms == newXDomain
@@ -40,10 +42,12 @@ ac3 (p@(CSP doms cons), True, ((x, y), rel):queue) =
       xvals = snd $ getVarDomain x doms
       yvals = snd $ getVarDomain y doms
     -- delete x's old domain and add x's new domain to the list of domains
-    newDoms    = newXDomain : delete (getVarDomain x doms) doms
+    newDoms  = newXDomain : delete (getVarDomain x doms) doms
     -- append to the arc queue xs the neighbors of x by filtering on (_, x)
-    newQueue   = queue ++ filter (\(arc, _) -> snd arc == x) cons
+    newQueue = queue ++ filter (\(arc, _) -> snd arc == x) cons
+\end{code}
 
+\begin{code}
 -- since ac3 outputs a CSP including all of the constraints, we use this to return only the domain. Note that the problem has a unique solution if all problems have size 1
 ac3domain :: [Domain] -> [Constraint] -> [Domain]
 ac3domain doms cons =
