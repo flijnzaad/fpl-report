@@ -27,23 +27,24 @@ ac3 (p, False, _) = (p, False, [])
 ac3 (p, True, []) = (p, True,  [])
 \end{code}
 
-In the recursive case, the first constraint in the constraint queue is considered.
+In the recursive case, the first constraint $C = \langle \langle x, y \rangle, R \rangle$ in the constraint queue is considered.
+The arc $\langle x, y \rangle$ of $C$ is then `revised' based on this constraint:
+the domain of $x$ is restricted to those values that satisfy the constraint $C$. More specifically, the new domain for $x$, \verb|newXDomain|, is such that those $x' \in D_x$ are kept for which $\exists y' \in D_y$ such that $\langle x', y' \rangle \in R$.
+
+If this revision did not change the domain of $x$ (i.e., $\langle x, y \rangle$ was already arc-consistent), then the recursion continues with the CSP unchanged, with the flag still set to \verb|True| (because no domains were changed) and with rest of the queue of constraints.
+
+If the revision \emph{did} change the domain of $x$, then this may cause changes in the domains of the `neighbors' of $x$: the arcs of which $x$ is the second argument. To propagate these changes, the neighbors of $x$ are added to the queue (\verb|newQueue|). The domain list is updated (\verb|newDoms|) by deleting the old domain of $x$ from it and adding the new domain of $x$ to it. The new Boolean flag is whether or not $x$'s new domain is empty.
 
 \begin{code}
 ac3 (p@(CSP doms cons), True, ((x, y), rel):queue) =
   if getVarDomain x doms == newXDomain
-    -- if after revising, the domain of x stays the same,
-    -- continue with the next arc in the queue and pass whether newXDomain is nonempty
-    then ac3 (p, not $ null $ snd newXDomain, queue)
-    -- if the domain of x has changed, need to add x's neighbors to queue
-    else ac3 (CSP newDoms cons, True, newQueue)
+    then ac3 (p, True, queue)
+    else ac3 (CSP newDoms cons, not $ null $ snd newXDomain, newQueue)
   where
     newXDomain = ( x, [ x' | x' <- xvals, any (\y' -> (x', y') `elem` rel) yvals ] ) where
       xvals = snd $ getVarDomain x doms
       yvals = snd $ getVarDomain y doms
-    -- delete x's old domain and add x's new domain to the list of domains
     newDoms  = newXDomain : delete (getVarDomain x doms) doms
-    -- append to the arc queue xs the neighbors of x by filtering on (_, x)
     newQueue = queue ++ filter (\(arc, _) -> snd arc == x) cons
 \end{code}
 
