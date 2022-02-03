@@ -23,11 +23,11 @@ Since a \verb|Domain| in our \verb|CSP| definition also consists of the variable
 \todo[inline]{say something about the Python code and its formatting: we input the sudoku we want to solve as a string where empty cells are zeroes, a zero means the starting domain can be anything in $\{ 1, \ldots, 9 \}$, if the cell is given its domain has just that element}
 
 \begin{code}
-generateSudokuDomains :: [Value] -> [Domain]
-generateSudokuDomains [] = []
-generateSudokuDomains (x:xs)
-    | x == 0    = (Var (80 - length xs), map Val [1..9]) : generateSudokuDomains xs
-    | otherwise = (Var (80 - length xs), [x])            : generateSudokuDomains xs
+genSudokuDoms :: [Value] -> [Domain]
+genSudokuDoms [] = []
+genSudokuDoms (x:xs)
+    | x == 0    = (Var (80 - length xs), map Val [1..9]) : genSudokuDoms xs
+    | otherwise = (Var (80 - length xs), [x])            : genSudokuDoms xs
 \end{code}
 
 Arguably the most interesting part now is how the constraints for each variable are generated.
@@ -41,15 +41,15 @@ varToCoords :: Variable -> (Int, Int)
 varToCoords n = fromJust $ lookup n varGrid
 \end{code}
 
-Now, the function \verb|generateSudokuConstraints| takes the list of all variables of the sudoku, and returns the list of constraints for the sudoku. It creates this list of constraints by working through the list of variables one by one and generating all constraints for each variable.
+Now, the function \verb|genSudokuCons| takes the list of all variables of the sudoku, and returns the list of constraints for the sudoku. It creates this list of constraints by working through the list of variables one by one and generating all constraints for each variable.
 As said before, each square on the grid is constrained by its row, column and $3 \times 3$ block.
 So a variable $n$ is a member of all arcs $\langle n, x \rangle$ where $x$ is a variable in the same row, column or block.
 The allowable values for the pair $\langle n, x \rangle$ are then all $y_1, y_2 \in \{ 1, \ldots, 9 \}$ such that $y_1 \neq y_2$.
 
 \begin{code}
-generateSudokuConstraints :: [Variable] -> [Constraint]
-generateSudokuConstraints [] = []
-generateSudokuConstraints (n:xs) =
+genSudokuCons :: [Variable] -> [Constraint]
+genSudokuCons [] = []
+genSudokuCons (n:xs) =
   map (\x -> ( (n,x), [(y1,y2) | y1 <- map Val [1..9], y2 <- map Val [1..9], y1 /= y2] ) )
 \end{code}
 
@@ -73,7 +73,7 @@ To obtain the variables in the same $3 \times 3$ block as $n$, we check if the $
               fst (varToCoords m) `div` 3 == fst (varToCoords n) `div` 3,
               snd (varToCoords m) `div` 3 == snd (varToCoords n) `div` 3]
     )
-      ++ generateSudokuConstraints xs
+      ++ genSudokuCons xs
 \end{code}
 
 The list comprehension contains the Boolean condition $m \neq n$ to ensure that there will not be an arc $\langle n, n \rangle$ in the constraints, since there will be no assignment that satisfies the constraint $n \neq n$.
@@ -96,7 +96,7 @@ printSudoku ((n, val@(value:_)):xs) =
     -- put extra newlines to vertically separate blocks
     when (getVar n `mod` 27 == 26) (putStr "\n")
     do printSudoku xs
--- (to avoid warning about non-exhaustive cases)
+-- (to avoid warning about non-exhaustive pattern-matching)
 printSudoku _ = putStr ""
 \end{code}
 
@@ -110,5 +110,9 @@ solveSudokuFromFile = do
   -- make the string into a list of Ints
   let values = map (Val . digitToInt) sudokuString
   -- solve the sudoku and print it
-  do printSudoku $ ac3domain (generateSudokuDomains values) (generateSudokuConstraints (map Var [0..80]))
+  do
+    let sudoku = ac3domain (genSudokuDoms values) (genSudokuCons (map Var [0..80]))
+    if not $ null sudoku
+    then printSudoku sudoku
+    else putStrLn "This sudoku has no solution."
 \end{code}
