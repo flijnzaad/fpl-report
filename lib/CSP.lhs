@@ -32,7 +32,6 @@ instance Show Value where
 type Domain      = (Variable, [Value])
 type Arc         = (Variable, Variable)
 type Constraint  = ( Arc, [(Value, Value)] )
-data Problem     = CSP { variables   :: [Variable]
-                       , domains     :: [Domain]
+data Problem     = CSP { domains     :: [Domain]
                        , constraints :: [Constraint] }
 \end{code}

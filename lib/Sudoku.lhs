@@ -110,5 +110,5 @@ solveSudokuFromFile = do
   -- make the string into a list of Ints
   let values = map (Val . digitToInt) sudokuString
   -- solve the sudoku and print it
-  do printSudoku $ ac3domain (map Var [0..80]) (generateSudokuDomains values) (generateSudokuConstraints (map Var [0..80]))
+  do printSudoku $ ac3domain (generateSudokuDomains values) (generateSudokuConstraints (map Var [0..80]))
 \end{code}
