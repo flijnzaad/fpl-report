@@ -24,7 +24,9 @@ ac3 (p@(CSP vars doms cons), True, ((varX, varY), rel):xs) =
     -- if the domain of x has changed, need to add x's neighbors to queue
     else ac3 (CSP vars newDoms cons, True, newQueue)
   where
-    newXDomain = revise ((varX, varY), rel) (unsafeLookup varX doms) (unsafeLookup varY doms)
+    newXDomain = (varX, [ x | x <- xvals, any (\y -> (x, y) `elem` rel) yvals ]) where
+      xvals = snd $ unsafeLookup varX doms
+      yvals = snd $ unsafeLookup varY doms
     -- delete x's old domain and add x's new domain to the list of domains
     newDoms    = newXDomain : delete (unsafeLookup varX doms) doms
     -- append to the arc queue xs the neighbors of x by filtering on (_, x)
@@ -34,14 +36,7 @@ ac3 (p@(CSP vars doms cons), True, ((varX, varY), rel):xs) =
 unsafeLookup :: Variable -> [Domain] -> Domain
 unsafeLookup x v = let (Just y) = lookup x v in (x,y)
 
--- implementation of the revise function of the pseudocode in the book
-revise :: Constraint -> Domain -> Domain -> Domain
-revise (_, rel) (varX, xs) (_, ys) = 
-  (varX, [ x | x <- xs, any (\y -> (x, y) `elem` rel) ys ])
--- test case : revise ((100,101),[(x,y)| x<-[1..4], y<-[1..4], x==y]) (100,[1..3]) (101,[2..4])
-
 -- since ac3 outputs a CSP including all of the constraints, we use this to return only the domain. Note that the problem has a unique solution if all problems have size 1
-
 ac3domain :: [Variable] -> [Domain] -> [Constraint] -> [Domain]
 ac3domain vars doms cons = let (CSP _ y _, _, _) = ac3 (CSP vars doms cons, True, cons) in sortBy (\(a,_) (b,_) -> compare a b) y
 \end{code}
