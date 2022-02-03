@@ -20,7 +20,7 @@ ac3 (p@(CSP vars doms cons), True, ((varX, varY), rel):xs) =
   if unsafeLookup varX doms == newXDomain
     -- if after revising, the domain of x stays the same,
     -- continue with the next arc in the queue and pass whether newXDomain is nonempty
-    then ac3 (p, not $ null newXDomain, xs)
+    then ac3 (p, not $ null $ snd newXDomain, xs)
     -- if the domain of x has changed, need to add x's neighbors to queue
     else ac3 (CSP vars newDoms cons, True, newQueue)
   where
@@ -36,23 +36,9 @@ unsafeLookup x v = let (Just y) = lookup x v in (x,y)
 
 -- implementation of the revise function of the pseudocode in the book
 revise :: Constraint -> Domain -> Domain -> Domain
--- trivial case: if there are no constraints, pass a domain with empty list of values
-revise (_ , []) (varX,  _) _ = (varX, [])
--- if the domain for x is empty, pass domain with empty list of values for x
-revise (_, _) (varX, []) _ = (varX, [])
--- else, perform body of the `for each` loop
-revise (arc, rel) (varX, x:xs) (varY, ys) =
-  if any (\y -> (x, y) `elem` rel) ys
-    -- if there is a value y in ys that satisfies the contraint between x and y,
-    -- add x to the domain and continue
-    then prependToSnd x (revise (arc, rel) (varX, xs) (varY, ys))
-    -- if there is none, continue without adding x
-    else revise (arc, rel) (varX, xs) (varY, ys)
+revise (_, rel) (varX, xs) (_, ys) = 
+  (varX, [ x | x <- xs, any (\y -> (x, y) `elem` rel) ys ])
 -- test case : revise ((100,101),[(x,y)| x<-[1..4], y<-[1..4], x==y]) (100,[1..3]) (101,[2..4])
-
--- prepend a value to the value list of a domain (the second argument of the tuple)
-prependToSnd :: Value -> Domain -> Domain
-prependToSnd x (varX, xs) = (varX, x:xs)
 
 -- since ac3 outputs a CSP including all of the constraints, we use this to return only the domain. Note that the problem has a unique solution if all problems have size 1
 
