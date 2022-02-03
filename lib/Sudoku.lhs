@@ -9,9 +9,9 @@ module Sudoku where
 
 import CSP
 import AC3
-import Data.Char        -- for using "digitToInt"
-import Data.Maybe       -- for using "fromJust"
-import Control.Monad    -- for using "when"
+import Data.Char     -- for using "digitToInt"
+import Data.Maybe    -- for using "fromJust"
+import Control.Monad -- for using "when"
 \end{code}
 
 We have chosen to represent the 81 squares of the grid as numbers between 0 and 80.
@@ -26,8 +26,8 @@ Since a \verb|Domain| in our \verb|CSP| definition also consists of the variable
 generateSudokuDomains :: [Value] -> [Domain]
 generateSudokuDomains [] = []
 generateSudokuDomains (x:xs)
-    | x == 0    = (Var (80 - length xs), (map Val [1..9])):generateSudokuDomains xs
-    | otherwise = (Var (80 - length xs), [x]):generateSudokuDomains xs
+    | x == 0    = (Var (80 - length xs), (map Val [1..9])) : generateSudokuDomains xs
+    | otherwise = (Var (80 - length xs), [x])              : generateSudokuDomains xs
 \end{code}
 
 Arguably the most interesting part now is how the constraints for each variable are generated.
