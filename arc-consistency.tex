@@ -1,2 +1,9 @@
 \section{Arc consistency}\label{sec:arc-consistency}
 
+A variable in a CSP is \emph{arc-consistent} if every value in its domain satisfies the variable's binary constraints.
+A CSP is arc-consistent if every variable in it is arc-consistent with every other variable.
+Arc consistency is a desirable property of a CSP, since it restricts and thus minimizes the domains of the CSP's variables.
+An arc-consistent CSP is not necessarily a solved CSP; a CSP is solved if all constraints are satisfied by any combination of values the variables can take on.
+A CSP does not have a solution if one variable has an empty domain (i.e. no possible values it can take on).
+
+The AC-3 algorithm reduces a CSP to its arc-consistent version. The algorithm return true if such an arc-consistent version exists, and it returns false if at any point a variable has an empty domain, i.e. the CSP has no solution.
