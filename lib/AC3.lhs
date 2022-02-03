@@ -1,21 +1,23 @@
-\section{The AC-3 algorithm}
+\section{The AC-3 algorithm}\label{sec:ac3}
 
 This functional implementation of the AC-3 algorithm is based on the imperative pseudocode in \cite[p.~209]{AIMA}.
+
+The \verb|ac3| function takes as input a tuple containing the full CSP, a Boolean flag and a queue of constraints. The Boolean flag is the true or false that the algorithm returns as described in \cref{sec:arc-consistency}.
+The queue of constraints more or less functions as a to-do list, containing the arcs of which the consistency needs to be checked still.
+When first calling the function, this queue contains all constraints of the CSP; when the queue of constraints is empty, the CSP is arc-consistent.
+If at any point during the recursion the Boolean flag is set to false, this means that the domain of a variable is empty and the CSP has no solution. In this case, there is no point in continuing the recursion, so it is halted.
 
 \begin{code}
 module AC3 where
 
 import CSP
 import Data.List
--- implementation of the AC-3 function, recursive version of the pseudocode in
--- the book; calls `revise` helper function. the book version passes a queue
--- of arcs; we use a list of constraints, since those contain the arcs
 ac3 :: (Problem, Bool, [Constraint]) -> (Problem, Bool, [Constraint])
--- if the Bool flag is False, the CSP has no solution, so stop the recursion
 ac3 (p, False, _) = (p, False, [])
--- if the arc queue is empty, stop the recursion and return True
 ac3 (p, True, []) = (p, True,  [])
--- else, perform body of the `while` loop
+\end{code}
+
+\begin{code}
 ac3 (p@(CSP doms cons), True, ((varX, varY), rel):xs) =
   if unsafeLookup varX doms == newXDomain
     -- if after revising, the domain of x stays the same,
@@ -39,4 +41,5 @@ unsafeLookup x v = let (Just y) = lookup x v in (x,y)
 -- since ac3 outputs a CSP including all of the constraints, we use this to return only the domain. Note that the problem has a unique solution if all problems have size 1
 ac3domain :: [Domain] -> [Constraint] -> [Domain]
 ac3domain doms cons = let (CSP y _, _, _) = ac3 (CSP doms cons, True, cons) in sortBy (\(a,_) (b,_) -> compare a b) y
+-- do something about returning False!
 \end{code}
