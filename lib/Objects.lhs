@@ -9,83 +9,105 @@ import Data.List
 import Data.Char
 
 -- Variables: Lines have negative IDs, junctions positive IDs
--- Values:    Lines: -1 = "-", -2 = "+", JunctionIDofOriginVertex = ">"
+-- Values:    Lines: 0 = "-", 1 = "+", 2 = "incoming <", 3 = "outgoing >"
 --         Junction: 0-5 = "L junction", 10-15 = "Fork", 20-23 = "T junction", 30-33 = "Arrow"
--- 
 
 type LineID     = Int
 type JunctionID = Int
-data Junction   = L LineID LineID JunctionID 
-                | Fork LineID LineID LineID JunctionID 
-                | T LineID LineID LineID JunctionID 
-                | Arrow LineID LineID LineID JunctionID
-data Line       = Line JunctionID JunctionID LineID
-type Object = ([Junction], [Line])
+data Junction   = L JunctionID JunctionID JunctionID 
+                | Fork JunctionID JunctionID JunctionID JunctionID 
+                | T JunctionID JunctionID JunctionID JunctionID 
+                | Arrow JunctionID JunctionID JunctionID JunctionID
+data Line       = Line JunctionID LineID LineID
+type Object = [Junction] 
 
+myfst, myfrth :: (JunctionID,LineID,LineID,JunctionID) -> JunctionID
+mysnd, mytrd  :: (JunctionID,LineID,LineID,JunctionID) -> LineID
+
+myfst  (a, _, _, _) = a
+mysnd  (_, b, _, _) = b
+mytrd  (_, _, c, _) = c
+myfrth (_, _, _, d) = d
+
+-- cycle through list of junctions, and add two lines between all connected junctions. 
+lineGeneration :: Object -> LineID -> [(JunctionID,LineID,LineID,JunctionID)]
+lineGeneration [] _                         = []
+lineGeneration ((L i j id):xs) lineID       = lineCreation id [i,j] lineID   ++ lineGeneration xs (lineID-2*length (lineCreation id [i,j] lineID))
+lineGeneration ((Fork i j k id):xs) lineID  = lineCreation id [i,j,k] lineID ++ lineGeneration xs (lineID-2*length (lineCreation id [i,j,k] lineID))
+lineGeneration ((T i j k id):xs) lineID     = lineCreation id [i,j,k] lineID ++ lineGeneration xs (lineID-2*length (lineCreation id [i,j,k] lineID))
+lineGeneration ((Arrow i j k id):xs) lineID = lineCreation id [i,j,k] lineID ++ lineGeneration xs (lineID-2*length (lineCreation id [i,j,k] lineID))
+
+lineCreation :: JunctionID -> [JunctionID] -> LineID -> [(JunctionID,LineID,LineID,JunctionID)]
+lineCreation _ [] _ = []
+lineCreation id (i:is) lineID = if id < i then (id, lineID, lineID-1, i):lineCreation id is (lineID-2) else lineCreation id is (lineID-2)
+
+
+junctionConstraints :: Object -> [(JunctionID,LineID,LineID,JunctionID)] -> ([Domain], [Constraint])
+junctionConstraints [] _ = ([],[])
+-- We consider the junctions one by one. We have already chosen the IDs of the lines between two junctions, and we use to the lineto lambda to find the correct ID
+junctionConstraints ((L i j id):xs) lineInfo       = ((id,[0..5]):doms,[
+  ((id,lineto i), [(0,2),(1,3),(2,3),(3,1),(4,2),(5,0)]),
+  ((id,lineto j), [(0,3),(1,2),(2,1),(3,2),(4,0),(5,5)])
+  ] ++ cons) where
+  (doms, cons) = junctionConstraints xs lineInfo
+  lineto = \n -> head (map mysnd (filter (\line -> myfst line == id && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == id) lineInfo))
+    -- Either (id, correctline, _ , i) or (i, _, correctline, id) appears in the output of lineGeneration, so head will always work.
+junctionConstraints ((Fork i j k id):xs) lineInfo  = ((id,[10..12]):doms,[
+  ((id,lineto i), [(10,1),(11,0),(12,0),(12,2),(12,3)]),
+  ((id,lineto j), [(10,1),(11,0),(12,0),(12,2),(12,3)]),
+  ((id,lineto k), [(10,1),(11,0),(12,0),(12,2),(12,3)])
+  ] ++ cons) where
+  (doms, cons) = junctionConstraints xs lineInfo
+  lineto = \n -> head (map mysnd (filter (\line -> myfst line == id && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == id) lineInfo))
+junctionConstraints ((T i j k id):xs) lineInfo      = ((id,[20..23]):doms,[
+  ((id,lineto i), [(20,2),(21,2),(22,3),(23,2)]),
+  ((id,lineto j), [(20,3),(21,3),(22,3),(23,3)]),
+  ((id,lineto k), [(20,2),(21,3),(22,1),(23,0)])
+  ] ++ cons) where
+  (doms, cons) = junctionConstraints xs lineInfo
+  lineto = \n -> head (map mysnd (filter (\line -> myfst line == id && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == id) lineInfo))
+junctionConstraints ((Arrow i j k id):xs) lineInfo  = ((id,[30..32]):doms,[
+  ((id,lineto i), [(30,3),(31,1),(32,0)]),
+  ((id,lineto j), [(30,2),(31,1),(32,0)]),
+  ((id,lineto k), [(30,1),(31,0),(32,1)])
+  ] ++ cons) where
+  (doms, cons) = junctionConstraints xs lineInfo
+  lineto = \n -> head (map mysnd (filter (\line -> myfst line == id && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == id) lineInfo))
 
 -- The Object type is nice and readable, this function generates the correct csp. 
--- It preserves the LineIDs and JunctionIDs used in the Object def. 
--- !! Lines must have neg. IDs, Junctions positive IDs
-cspGeneration :: Object -> Int -> Problem
-cspGeneration ([],[]) _ = CSP [] [] []
--- Here we exhaust first the list of Junctions that are passed. The last case exhausts all Lines
-cspGeneration ((L i j id):xs, ys) maxID       = CSP (id:vars) ((id,[0..5]):doms) 
-    ([
-      ((id,i),[(0,var)|var<-otherIDs]++[(1,id),(2,id),(3,-2)]++[(4,var)|var<-otherIDs]++[(5,-1)]),
-      ((id,j),[(0,id)]++[(1,var)|var<-otherIDs]++[(2,-2)]++[(3,var)|var<-otherIDs]++[(4,-1),(5,id)])
-    ] ++ cons) where 
-    CSP vars doms cons = cspGeneration (xs, ys) maxID
-    otherIDs = [0..id] ++ [id+1..maxID]
-cspGeneration ((Fork i j k id):xs, ys) maxID  = CSP (id:vars) ((id,[10..12]):doms) 
-    ([
-      ((id,i),[(10,-2),(11,-1)]++[(12,var)|var<-otherIDs]),
-      ((id,j),[(10,-2),(11,-1),(12,-1)]),
-      ((id,k),[(10,-2),(11,-1),(12,id)])
-    ] ++ cons) where 
-    CSP vars doms cons = cspGeneration (xs, ys) maxID
-    otherIDs = [0..id] ++ [id+1..maxID]
-cspGeneration ((T i j k id):xs, ys) maxID     = CSP (id:vars) ((id,[20..23]):doms)
-    ([
-      ((id,i),[(20,var)|var<-otherIDs]++[(21,var)|var<-otherIDs]++[(22,var)|var<-otherIDs]++[(23,var)|var<-otherIDs]),
-      ((id,j),[(20,id),(21,id),(22,id),(23,id)]),
-      ((id,k),[(20,var)|var<-otherIDs]++[(21,id),(22,-2),(23,-1)])
-    ] ++ cons) where 
-    CSP vars doms cons = cspGeneration (xs, ys) maxID
-    otherIDs = [0..id] ++ [id+1..maxID]
-cspGeneration ((Arrow i j k id):xs, ys) maxID = CSP (id:vars) ((id,[30..32]):doms) 
-    ([
-      ((id,i),[(30,id),(31,-1),(32,-2)]),
-      ((id,j),[(30,var)|var<-otherIDs]++[(31,-2),(32,-1)]),
-      ((id,k),[(30,-2),(31,-1),(32,-2)])
-    ] ++ cons) where 
-    CSP vars doms cons = cspGeneration (xs, ys) maxID
-    otherIDs = [0..id] ++ [id+1..maxID]
-cspGeneration (xs, (Line i j id):ys) maxID    = CSP (id:vars) ((id,[-2..maxID]):doms) 
-    ([
-    --pretty poor restriction since any value of a line with an arrow allows both adjacent junctions to be any of those with an arrow
-      ((id,i),[(-1,4),(-1,5),(-1,11),(-1,12),(-1,21),(-1,31),(-1,32),
-        (-2,3),(-2,4),(-2,10),(-2,22),(-2,30),(-2,31),(-2,32)]++
-        [(line,junction) | line<-[0..maxID], junction<-[0,1,2,3,4,5,12,20,21,22,23,24,30]]),
-    ((id,j),[(-1,4),(-1,5),(-1,11),(-1,12),(-1,21),(-1,31),(-1,32),
-        (-2,3),(-2,4),(-2,10),(-2,22),(-2,30),(-2,31),(-2,32)]++
-        [(line,junction) | line<-[0..maxID], junction<-[0,1,2,3,4,5,12,20,21,22,23,24,30]])
-    ] ++ cons) where
-    CSP vars doms cons = cspGeneration (xs, ys) maxID
+-- It preserves the JunctionIDs used in the Object def.
+-- !! Junctions must have positive IDs
 
--- Input the outline arrows as a first step. The JunctionID corresponding to a LineID is the origin of the direction over the line
-setInitialObjectDomains :: [Domain] -> [(LineID,JunctionID)] -> [Domain]
-setInitialObjectDomains doms [] = doms
-setInitialObjectDomains doms ((line,junction):xs) = (line,[junction]):filter (\x -> fst x /= line) doms
+cspGenerator :: Object -> Problem
+cspGenerator object = CSP ([0..length allJuncDomains -1]++[-2*length lineInfo..(-1)]) (allJuncDomains ++ allLineDomains) (allJuncConstraints ++ allLineConstraints) where
+  lineInfo                              = lineGeneration object (-1) -- first line gets variable -1
+  (allJuncDomains, allJuncConstraints)  = junctionConstraints object lineInfo
+  allLineDomains      = concat [[(2*line,[0..3]),(2*line-1,[0..3])] | line <- [-length lineInfo..(-1)] ]
+  allLineConstraints  = [ ((2*line, 2*line-1), [(0,0),(1,1),(2,3),(3,2)]) | line <- [-length lineInfo..(-1)] ]
+
+
+-- Input the outline arrows as a first step. A line with arrow leaving a vertex will get Val 3, an incoming line gets Val 2
+-- The third argument is the list of Junction pairs we identify as outline.
+setOutlineArrows :: [Domain] -> [(JunctionID,LineID,LineID,JunctionID)] -> [(JunctionID,JunctionID)] -> [Domain]
+setOutlineArrows doms _ []              = doms
+setOutlineArrows doms lineInfo ((x,y):xs) 
+                  -- the following is safe if our list of border junctions is actually a path on the object, since:
+                  -- if x<y we will have (x,i,i-1,y) in our lineInfo, otherwise we will have (y,i,i-1,x) as an element.
+                              | x<y       = let Just (_,i,_,_) = find (\line -> myfst line == x && myfrth line == y) lineInfo in 
+                                  (i,[3]):(i-1,[2]):delete (i,[0..3]) (delete (i-1,[0..3]) (setOutlineArrows doms lineInfo xs))
+                              | otherwise = let Just (_,i,_,_) = find (\line -> myfst line == y && myfrth line == x) lineInfo in 
+                                  (i,[2]):(i-1,[3]):delete (i,[0..3]) (delete (i-1,[0..3]) (setOutlineArrows doms lineInfo xs))
 
 cube :: Object
-cube = ([Arrow (-1) (-2) (-3) 0, L (-3) (-4) 1, Arrow (-4) (-5) (-6) 2, L (-6) (-7) 3, Arrow (-7) (-8) (-9) 4, L (-9) (-1) 5, Fork (-2) (-5) (-8) 6],
-        [Line 0 5 (-1), Line 0 6 (-2), Line 0 1 (-3), Line 1 2 (-4), Line 2 6 (-5), Line 2 3 (-6), Line 3 4 (-7), Line 4 6 (-8), Line 4 5 (-9)])
+cube = [Arrow 1 5 6 0, L 0 2 1, Arrow 3 1 6 2, L 2 4 3, Arrow 5 3 6 4, L 4 0 5, Fork 0 2 4 6]
 
-cubeArrows :: [(LineID,JunctionID)]
-cubeArrows = [(-1,5),(-3,0),(-4,1),(-6,2),(-7,3),(-9,4)]
+cubeOutline :: [(JunctionID,JunctionID)]
+cubeOutline = [(0,1),(1,2),(2,3),(3,4),(4,5),(5,0)]
 
 cubeCSPtest :: Problem 
-cubeCSPtest = CSP vars (setInitialObjectDomains doms cubeArrows) cons
-  where CSP vars doms cons = cspGeneration cube 6 
+cubeCSPtest = CSP vars (setOutlineArrows doms (lineGeneration cube (-1)) cubeOutline) cons
+  where CSP vars doms cons = cspGenerator cube
+
+ac3input = let CSP vars doms cons = cspGenerator cube in (cubeCSPtest, True, cons)
 
 \end{code}
