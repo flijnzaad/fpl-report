@@ -9,9 +9,9 @@ module Sudoku where
 
 import CSP
 import AC3
-import Data.List
-import Data.Char
-import Data.Maybe
+import Data.Char     -- for using "digitToInt"
+import Data.Maybe    -- for using "fromJust"
+import Control.Monad -- for using "when"
 \end{code}
 
 We have chosen to represent the 81 squares of the grid as numbers between 0 and 80.
@@ -26,96 +26,89 @@ Since a \verb|Domain| in our \verb|CSP| definition also consists of the variable
 generateSudokuDomains :: [Value] -> [Domain]
 generateSudokuDomains [] = []
 generateSudokuDomains (x:xs)
-    | x == 0    = (80 - length xs, [1..9]):generateSudokuDomains xs
-    | otherwise = (80 - length xs, [x]   ):generateSudokuDomains xs
+    | x == 0    = (Var (80 - length xs), (map Val [1..9])) : generateSudokuDomains xs
+    | otherwise = (Var (80 - length xs), [x])              : generateSudokuDomains xs
 \end{code}
 
 Arguably the most interesting part now is how the constraints for each variable are generated.
-The function \verb|generateSudokuConstraints| takes the list of all variables of the sudoku, and returns the list of constraints for the sudoku. It creates this list of constraints by working through the list of variables one by one and generating all constraints for each variable.
+To be able to formulate the constraints in an intuitive way, the function \verb|varToCoords| takes a variable and returns a tuple of its $x$- and $y$-coordinates within the $9 \times 9$ grid.
+\verb|varToCoords| functions as a wrapper around the \verb|varGrid| to eliminate some duplicate code.
+
+\begin{code}
+varGrid :: [(Variable, (Int, Int))]
+varGrid = zip (map Var [0..80]) [ (i,j) | i <- [0..8], j <- [0..8] ]
+varToCoords :: Variable -> (Int, Int)
+varToCoords n = fromJust $ lookup n varGrid
+\end{code}
+
+Now, the function \verb|generateSudokuConstraints| takes the list of all variables of the sudoku, and returns the list of constraints for the sudoku. It creates this list of constraints by working through the list of variables one by one and generating all constraints for each variable.
 As said before, each square on the grid is constrained by its row, column and $3 \times 3$ block.
 So a variable $n$ is a member of all arcs $\langle n, x \rangle$ where $x$ is a variable in the same row, column or block.
 The allowable values for the pair $\langle n, x \rangle$ are then all $y_1, y_2 \in \{ 1, \ldots, 9 \}$ such that $y_1 \neq y_2$.
 
 \begin{code}
--- precalculate this to make computation more efficient
-varGrid :: [(Variable, (Value, Value))]
-varGrid = zip [0..80] [ (i,j) | i <- [0..8], j <- [0..8] ]
-varToCoords :: Variable -> (Value, Value)
-varToCoords n = fromJust $ lookup n varGrid
 generateSudokuConstraints :: [Variable] -> [Constraint]
 generateSudokuConstraints [] = []
 generateSudokuConstraints (n:xs) =
-  map (\x -> ( (n,x), [(y1,y2) | y1 <- [1..9], y2 <- [1..9], y1 /= y2] ) )
+  map (\x -> ( (n,x), [(y1,y2) | y1 <- (map Val [1..9]), y2 <- (map Val [1..9]), y1 /= y2] ) )
 \end{code}
 
 The row, column and block constraints are dependent on the position of the variable $n$ within the grid.
-
 The following code fragment determines the variables $x$ with which $n$ is participating in a constraint.
-
-The variables in $n$'s row are obtained by rounding $n$ down to the nearest multiple of 9 (i.e. taking $n - (n \mod 9)$) and then adding $i \in \{ 0, \ldots 8 \}$ to it.
-
-The variables in $n$'s column are obtained by getting the `$y$-coordinate' of $n$ using $n \mod 9$, and adding multiples of 9 to it.
-
-The code for obtaining the variables in $n$'s block is more complex.
+The variables in the same row as $n$ have the same $x$-coordinate, and the variables in the same column as $n$ have the same $y$-coordinate.
+To obtain the variables in the same $3 \times 3$ block as $n$, we check if the $x$-coordinates of $n$ and $m$ are the same when divided by 3; we do the same for the $y$-coordinates.
 
 \begin{code}
--- eg if the y position is the middle row of the 3x3 square we have (n div 9) mod 3 == 1, and so we find the other square variables by also looking the row above (j = -1) and below (j = 1)
-      -- the variables in its row are found by subtracting until we get a multiple of 9 and by adding until the next one
-      -- and the same action for the column are found by taking the y position
-  (filter (/=n) (
-    nub (
+    (
       -- rows
-         [m | m <- [0..80],
-              (fst $ varToCoords m) == (fst $ varToCoords n)]
+         [m | m <- (map Var [0..80]), m /= n,
+              fst (varToCoords m) == fst (varToCoords n)]
       -- columns
-      ++ [m | m <- [0..80],
-              (snd $ varToCoords m) == (snd $ varToCoords n)]
+      ++ [m | m <- (map Var [0..80]), m /= n,
+              snd (varToCoords m) == snd (varToCoords n)]
       -- blocks
-      ++ [m | m <- [0..80],
-              (fst $ varToCoords m) `div` 3 == (fst $ varToCoords n) `div` 3,
-              (snd $ varToCoords m) `div` 3 == (snd $ varToCoords n) `div` 3]
+      ++ [m | m <- (map Var [0..80]), m /= n,
+              fst (varToCoords m) /= fst (varToCoords n),
+              snd (varToCoords m) /= fst (varToCoords n),
+              fst (varToCoords m) `div` 3 == fst (varToCoords n) `div` 3,
+              snd (varToCoords m) `div` 3 == snd (varToCoords n) `div` 3]
     )
-  ))
-  ++ generateSudokuConstraints xs
+      ++ generateSudokuConstraints xs
 \end{code}
 
-We \verb|filter| the output such that there will not be an arc $ \langle n, n \rangle $ in the constraints, since there will be no assignment that satisfies the constraint $n \neq n$.
-Moreover, we use \verb|nub| to ensure that there are no duplicate constraints.
-\todo[inline]{mention something about double constraints because (x,y) /= (y, x)}
+The list comprehension contains the Boolean condition $m \neq n$ to ensure that there will not be an arc $\langle n, n \rangle$ in the constraints, since there will be no assignment that satisfies the constraint $n \neq n$.
+Moreover, the list comprehension for the block constraints ensures that variables in the same row or column are ignored, since those have already been taken into account.
+
+The \verb|printSudoku| function takes the list of \verb|Domain|s of a sudoku and prints the (partially) solved sudoku in a readable format using spaces and newlines.
+If the list of possible values for a variable only contains one element, this element may be printed; if it does not, then the value of that variable is as of yet undetermined and an underscore is printed to indicate this.
 
 \begin{code}
--- test: ac3 (CSP sudokuVars (generateSudokuDomains sudoku1) (generateSudokuConstraints sudokuVars), True, generateSudokuConstraints sudokuVars)
--- test: ac3domain sudokuVars (generateSudokuDomains sudoku1) (generateSudokuConstraints sudokuVars)
-
--- prints a sudoku
 printSudoku :: [Domain] -> IO ()
--- base case recursion: done printing
 printSudoku [] = putStr ""
 printSudoku ((n, val@(value:_)):xs) =
   do
+    -- put the number there if determined, else _
     putStr (if val == [value] then show value else "_")
-    if n `mod` 3 == 2
-       -- put spaces between different blocks
-      then putStr " "
-      else putStr ""
-    if n `mod` 9 == 8
-       -- put newlines at the end of rows
-      then putStr "\n"
-      else putStr ""
-    if n `mod` 27 == 26
-       -- put extra newlines to vertically separate blocks
-      then putStr "\n"
-      else putStr ""
+    -- put spaces between different blocks
+    when ((getVar n) `mod` 3  == 2)  (putStr " ")
+    -- put newlines at the end of rows
+    when ((getVar n) `mod` 9  == 8)  (putStr "\n")
+    -- put extra newlines to vertically separate blocks
+    when ((getVar n) `mod` 27 == 26) (putStr "\n")
     do printSudoku xs
 -- (to avoid warning about non-exhaustive cases)
 printSudoku _ = putStr ""
+\end{code}
 
--- solves sudoku in "sudoku.txt" in current directory
+\todo[inline]{add explanations here}
+
+\begin{code}
+-- solves the available sudoku in "sudoku.txt" in the "sudoku/" subdirectory
 solveSudokuFromFile :: IO ()
 solveSudokuFromFile = do
   sudokuString <- readFile "sudoku/sudoku.txt"
   -- make the string into a list of Ints
-  let values = map digitToInt sudokuString
+  let values = map (Val . digitToInt) sudokuString
   -- solve the sudoku and print it
-  do printSudoku $ ac3domain [0..80] (generateSudokuDomains values) (generateSudokuConstraints [0..80])
+  do printSudoku $ ac3domain (generateSudokuDomains values) (generateSudokuConstraints (map Var [0..80]))
 \end{code}
