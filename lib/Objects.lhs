@@ -144,22 +144,3 @@ ac3onObject (object, outline) = (bool, map (\(var,vals) -> (getVar var, vals)) d
   CSP initdoms initcons = cspGenerator object
   (CSP doms cons, bool, _) = ac3 (CSP (setOutlineArrows initdoms (lineGeneration object (-1)) outline) initcons, True, initcons) 
 \end{code}
-
-\begin{code}
-cube :: (Object, Outline) -- As in Winston1992 Fig 12.15. Labeled clockwise starting at the upper left junction. Passes our object criteria so should return True.
-cube = ([ Arrow (Var 1) (Var 5) (Var 6) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 3) (Var 1) (Var 6) (Var 2), L (Var 2) (Var 4) (Var 3), 
-        Arrow (Var 5) (Var 3) (Var 6) 4, L (Var 4) (Var 0) (Var 5), Fork (Var 0) (Var 2) (Var 4) (Var 6)],
-        [ (Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 3), (Var 3, Var 4), (Var 4, Var 5), (Var 5, Var 0) ])
-
-testfig18 :: (Object,Outline) -- As in Fig 12.18. Should return False, since as shown in Winston1992 Fig 12.18 there is no possible labeling of the middle junction.
-testfig18 = ([ Arrow (Var 1) (Var 2) (Var 3) (Var 0), L (Var 0) (Var 4) (Var 1), L (Var 7) (Var 0) (Var 2), Fork (Var 0) (Var 8) (Var 9) (Var 3),
-             Arrow (Var 5) (Var 1) (Var 6) (Var 4), L (Var 4) (Var 7) (Var 5), Fork (Var 8) (Var 7) (Var 4) (Var 6), 
-             Arrow (Var 2) (Var 5) (Var 6) (Var 7), Arrow (Var 3) (Var 6) (Var 9) (Var 8), L (Var 3) (Var 8) (Var 9)],
-             [ (Var 0, Var 1), (Var 1, Var 4), (Var 4, Var 5), (Var 5, Var 7), (Var 7, Var 2), (Var 2, Var 0) ])
-
-testfig12A :: (Object,Outline) -- Test including a T junction. This is from the perspective of observer A in Fig 12.12 in Winston1992.
-testfig12A = ([ Arrow (Var 1) (Var 8) (Var 9) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 4) (Var 1) (Var 3) (Var 2), L (Var 4) (Var 2) (Var 3),
-              T (Var 3) (Var 5) (Var 2) (Var 4), Arrow (Var 6) (Var 4) (Var 9) (Var 5), L (Var 5) (Var 7) (Var 6), 
-              Arrow (Var 8) (Var 6) (Var 9) (Var 7), L (Var 7) (Var 0) (Var 8), Fork (Var 0) (Var 7) (Var 5) (Var 9) ],
-              [ (Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 4), (Var 4, Var 5), (Var 5, Var 6), (Var 6, Var 7), (Var 7, Var 8), (Var 8, Var 0) ])
-\end{code}
