@@ -11,12 +11,7 @@ import AC3
 import Sudoku
 
 import Test.Hspec
-\end{code}
 
-The following uses the HSpec library to define different tests.
-Note that the first test is a specific test with fixed inputs.
-
-\begin{code}
 main :: IO ()
 main = hspec $ do
   describe "AC-3" $ do
@@ -29,12 +24,15 @@ main = hspec $ do
         sudokuCSP = CSP (genSudokuDoms sudoku) sudokuCons
 
 sudoku :: [Value]
-sudoku = [0,5,0,7,0,3,0,0,9,0,0,8,0,6,1,0,0,5,7,0,3,5,0,4,8,0,0,3,0,0,4,0,0,0,9,0,2,0,0,0,0,0,0,0,0,0,8,0,0,2,0,3,5,0,5,1,6,0,4,2,0,0,0,0,0,0,0,0,9,5,8,0,0,3,0,0,5,7,0,2,0]
+sudoku = [0,5,0,7,0,3,0,0,9,
+          0,0,8,0,6,1,0,0,5,
+          7,0,3,5,0,4,8,0,0,
+          3,0,0,4,0,0,0,9,0,
+          2,0,0,0,0,0,0,0,0,
+          0,8,0,0,2,0,3,5,0,
+          5,1,6,0,4,2,0,0,0,
+          0,0,0,0,0,9,5,8,0,
+          0,3,0,0,5,7,0,2,0]
 \end{code}
 
-To run the tests, use \verb|stack test|.
-
-To also find out which part of your program is actually used for these tests,
-run \verb|stack clean && stack test --coverage|. Then look for ``The coverage
-report for ... is available at ... .html'' and open this file in your browser.
-See also: \url{https://wiki.haskell.org/Haskell_program_coverage}.
+Moreover, the algorithm and sudoku implementation can be tested manually by running \verb|python3 generate_sudoku.py| in the \verb|sudoku| subdirectory to generate a new sudoku, and in the main directory running \verb|stack ghci| and then \verb|ac3SudokuFromFile|.
