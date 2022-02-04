@@ -1,5 +1,12 @@
 \section{Conclusion}\label{sec:conclusion}
 
+In conclusion, the AC-3 algorithm is a fast way to obtain an arc consistent CSP. Moreover, arc consistency is a nice way to simplify and reduce a CSP, and in some cases even solve it.
+Haskell is a suitable language to represent CSPs and implement the AC-3 algorithm.
+
 \subsection{Further improvements and research}\label{sec:further}
 
-The double constraints could be eliminated from the sudoku CSP definition by using unordered pairs
+Since the AC-3 algorithm is not able to solve all CSPs (for example, some sudokus it was unable to solve), this program could be augmented with other algorithms.
+For example, the PC-2 algorithm makes a CSP path-consistent. Path consistency is a stronger notion of consistency: it ``tightens the binary constraints by using implicit constraints that are inferred by looking at triples of variables'' \cite[p.~210]{AIMA}.
+Taking also this notion of consistency into account and maybe even for example $k$-consistency, the program could come closer to solving CSPs.
+
+% The double constraints could be eliminated from the sudoku CSP definition by using unordered pairs
