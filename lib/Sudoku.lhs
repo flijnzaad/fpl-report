@@ -4,6 +4,10 @@ Sudokus are a well-known constraint satisfaction problem: each square of the $9 
 In order to use the AC-3 algorithm on sudokus, the sudoku first needs to be represented as a constraint satisfaction problem (see \cref{sec:CSP}).
 In order to do so, the variables, domains and constraints of the problem need to be specified.
 
+\paragraph{Intermezzo: generating sudokus}
+
+In order to later test our representation of a sudoku as a CSP and subsequently test our implementation of the AC-3 algorithm (and avoid having to type in sudokus manually), we needed a program that generates sudokus in plaintext. We found a Python script that does just this, and adapted it to fit our program; see Appendix~\ref{app:sudoku} for its code and a short explanation of its workings.
+
 \begin{code}
 module Sudoku where
 
@@ -14,8 +18,9 @@ import Data.Maybe    -- for using "fromJust"
 import Control.Monad -- for using "when"
 \end{code}
 
-We have chosen to represent the 81 squares of the grid as numbers between 0 and 80.
-\todo[inline]{say something about being in line with the CSP definition}
+Although a representation of a square as its coordinates within the grid is a natural one, our definition of a CSP calls for a variable to be an integer.
+Therefore, we represent the 81 squares of the grid as numbers between 0 and 80, numbered from left to right from top to bottom.
+As we will see in a bit, for determining the constraints on a square it is useful to use the coordinate notation.
 
 The domain of each empty square of a sudoku is $\{ 1, \ldots, 9 \}$; the domain of a square filled with some $x$ is $\{x\}$.
 Since a \verb|Domain| in our \verb|CSP| definition also consists of the variable's \verb|Int|, the following code also computes the `index' of the square as a number between 0 and 80.
@@ -102,14 +107,14 @@ printSudoku _ = putStr ""
 
 \todo[inline]{add explanations here}
 
+The code that generates an unsolved sudoku (see Appendix~\ref{app:sudoku}) writes a string of digits to the file \verb|sudoku/sudoku.txt|. These digits are in the same order as the squares are numbered with variables. This input is converted to a list of \verb|Val|s, and \verb|ac3domain| is called using the functions for generating domains and constraints for this particular sudoku. If the sudoku has a solution\footnote{which a sudoku produced by the Appendix~\ref{app:sudoku} code always will have}, the result is printed with \verb|printSudoku|; if not (if the domain returned by \verb|ac3domain| is empty), a message on the screen will indicate this fact.
+
 \begin{code}
 -- solves the available sudoku in "sudoku.txt" in the "sudoku/" subdirectory
 solveSudokuFromFile :: IO ()
 solveSudokuFromFile = do
   sudokuString <- readFile "sudoku/sudoku.txt"
-  -- make the string into a list of Ints
   let values = map (Val . digitToInt) sudokuString
-  -- solve the sudoku and print it
   do
     let sudoku = ac3domain (genSudokuDoms values) (genSudokuCons (map Var [0..80]))
     if not $ null sudoku
