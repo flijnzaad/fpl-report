@@ -111,8 +111,8 @@ The code that generates an unsolved sudoku (see Appendix~\ref{app:sudoku}) write
 
 \begin{code}
 -- solves the available sudoku in "sudoku.txt" in the "sudoku/" subdirectory
-solveSudokuFromFile :: IO ()
-solveSudokuFromFile = do
+ac3SudokuFromFile :: IO ()
+ac3SudokuFromFile = do
   sudokuString <- readFile "sudoku/sudoku.txt"
   let values = map (Val . digitToInt) sudokuString
   do
