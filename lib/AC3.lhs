@@ -48,11 +48,15 @@ ac3 (p@(CSP doms cons), True, ((x, y), rel):queue) =
     newQueue = queue ++ filter (\(arc, _) -> snd arc == x) cons
 \end{code}
 
+Since the \verb|ac3| function outputs a full CSP, it is useful for practical applications to have a wrapper function that calls \verb|ac3| and only outputs the list of domains. Moreover, it is useful to have this list be sorted, since during execution of the AC-3 algorithm, the list of domains has been scrambled.
+
 \begin{code}
--- since ac3 outputs a CSP including all of the constraints, we use this to return only the domain. Note that the problem has a unique solution if all problems have size 1
 ac3domain :: [Domain] -> [Constraint] -> [Domain]
 ac3domain doms cons =
-  let (CSP y _, _, _) = ac3 (CSP doms cons, True, cons) in
-  sortBy (\(a,_) (b,_) -> compare a b) y
--- do something about returning False!
+  if succeeded
+    then
+      sortBy (\(a,_) (b,_) -> compare a b) y
+    else []
+  where
+    (CSP y _, succeeded, _) = ac3 (CSP doms cons, True, cons)
 \end{code}
