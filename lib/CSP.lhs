@@ -33,5 +33,5 @@ type Domain      = (Variable, [Value])
 type Arc         = (Variable, Variable)
 type Constraint  = ( Arc, [(Value, Value)] )
 data Problem     = CSP { domains     :: [Domain]
-                       , constraints :: [Constraint] }
+                       , constraints :: [Constraint] } deriving Show
 \end{code}

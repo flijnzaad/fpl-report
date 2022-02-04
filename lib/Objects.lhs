@@ -6,14 +6,16 @@ module Objects where
 import CSP
 import AC3
 import Data.List
+import Data.Tuple
+import Data.Ord
 import Data.Char
 
 -- Variables: Lines have negative IDs, junctions positive IDs
 -- Values:    Lines: 0 = "-", 1 = "+", 2 = "incoming <", 3 = "outgoing >"
 --         Junction: 0-5 = "L junction", 10-15 = "Fork", 20-23 = "T junction", 30-33 = "Arrow"
 
-type LineID     = Int
-type JunctionID = Int
+type LineID     = Variable
+type JunctionID = Variable
 data Junction   = L JunctionID JunctionID JunctionID 
                 | Fork JunctionID JunctionID JunctionID JunctionID 
                 | T JunctionID JunctionID JunctionID JunctionID 
@@ -32,82 +34,103 @@ myfrth (_, _, _, d) = d
 -- cycle through list of junctions, and add two lines between all connected junctions. 
 lineGeneration :: Object -> LineID -> [(JunctionID,LineID,LineID,JunctionID)]
 lineGeneration [] _                         = []
-lineGeneration ((L i j id):xs) lineID       = lineCreation id [i,j] lineID   ++ lineGeneration xs (lineID-2*length (lineCreation id [i,j] lineID))
-lineGeneration ((Fork i j k id):xs) lineID  = lineCreation id [i,j,k] lineID ++ lineGeneration xs (lineID-2*length (lineCreation id [i,j,k] lineID))
-lineGeneration ((T i j k id):xs) lineID     = lineCreation id [i,j,k] lineID ++ lineGeneration xs (lineID-2*length (lineCreation id [i,j,k] lineID))
-lineGeneration ((Arrow i j k id):xs) lineID = lineCreation id [i,j,k] lineID ++ lineGeneration xs (lineID-2*length (lineCreation id [i,j,k] lineID))
+lineGeneration ((L i j juncID):xs)       lineID = lineCreation juncID [i,j] lineID   ++ lineGeneration xs (Var (getVar lineID-2*length (lineCreation juncID [i,j]   lineID)))
+lineGeneration ((Fork i j k juncID):xs)  lineID = lineCreation juncID [i,j,k] lineID ++ lineGeneration xs (Var (getVar lineID-2*length (lineCreation juncID [i,j,k] lineID)))
+lineGeneration ((T i j k juncID):xs)     lineID = lineCreation juncID [i,j,k] lineID ++ lineGeneration xs (Var (getVar lineID-2*length (lineCreation juncID [i,j,k] lineID)))
+lineGeneration ((Arrow i j k juncID):xs) lineID = lineCreation juncID [i,j,k] lineID ++ lineGeneration xs (Var (getVar lineID-2*length (lineCreation juncID [i,j,k] lineID)))
 
 lineCreation :: JunctionID -> [JunctionID] -> LineID -> [(JunctionID,LineID,LineID,JunctionID)]
 lineCreation _ [] _ = []
-lineCreation id (i:is) lineID = if id < i then (id, lineID, lineID-1, i):lineCreation id is (lineID-2) else lineCreation id is (lineID-2)
-
+lineCreation juncID (i:is) lineID = if getVar juncID < getVar i then (juncID, lineID, Var (getVar lineID-1), i):lineCreation juncID is (Var (getVar lineID-2)) else lineCreation juncID is lineID
 
 junctionConstraints :: Object -> [(JunctionID,LineID,LineID,JunctionID)] -> ([Domain], [Constraint])
 junctionConstraints [] _ = ([],[])
 -- We consider the junctions one by one. We have already chosen the IDs of the lines between two junctions, and we use to the lineto lambda to find the correct ID
-junctionConstraints ((L i j id):xs) lineInfo       = ((id,[0..5]):doms,[
-  ((id,lineto i), [(0,2),(1,3),(2,3),(3,1),(4,2),(5,0)]),
-  ((id,lineto j), [(0,3),(1,2),(2,1),(3,2),(4,0),(5,5)])
+junctionConstraints ((L i j juncID):xs) lineInfo       = ((juncID,[Val 0, Val 1, Val 2, Val 3, Val 4, Val 5]):doms,[
+  ((juncID,lineto i), [(Val 0,Val 2), (Val 1,Val 3), (Val 2,Val 3), (Val 3,Val 1), (Val 4,Val 2), (Val 5,Val 0)]),
+  ((juncID,lineto j), [(Val 0,Val 3), (Val 1,Val 2), (Val 2,Val 1), (Val 3,Val 2), (Val 4,Val 0), (Val 5,Val 5)])
   ] ++ cons) where
   (doms, cons) = junctionConstraints xs lineInfo
-  lineto = \n -> head (map mysnd (filter (\line -> myfst line == id && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == id) lineInfo))
-    -- Either (id, correctline, _ , i) or (i, _, correctline, id) appears in the output of lineGeneration, so head will always work.
-junctionConstraints ((Fork i j k id):xs) lineInfo  = ((id,[10..12]):doms,[
-  ((id,lineto i), [(10,1),(11,0),(12,0),(12,2),(12,3)]),
-  ((id,lineto j), [(10,1),(11,0),(12,0),(12,2),(12,3)]),
-  ((id,lineto k), [(10,1),(11,0),(12,0),(12,2),(12,3)])
+  lineto = \n -> head (map mysnd (filter (\line -> myfst line == juncID && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == juncID) lineInfo))
+    -- Either (juncID, correctline, _ , i) or (i, _, correctline, juncID) appears in the output of lineGeneration, so head will always work.
+junctionConstraints ((Fork i j k juncID):xs) lineInfo  = ((juncID,[Val 10, Val 11, Val 12]):doms,[
+  ((juncID,lineto i), [(Val 10,Val 1), (Val 11,Val 0), (Val 12,Val 0), (Val 12,Val 2), (Val 12,Val 3)]),
+  ((juncID,lineto j), [(Val 10,Val 1), (Val 11,Val 0), (Val 12,Val 0), (Val 12,Val 2), (Val 12,Val 3)]),
+  ((juncID,lineto k), [(Val 10,Val 1), (Val 11,Val 0), (Val 12,Val 0), (Val 12,Val 2), (Val 12,Val 3)])
   ] ++ cons) where
   (doms, cons) = junctionConstraints xs lineInfo
-  lineto = \n -> head (map mysnd (filter (\line -> myfst line == id && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == id) lineInfo))
-junctionConstraints ((T i j k id):xs) lineInfo      = ((id,[20..23]):doms,[
-  ((id,lineto i), [(20,2),(21,2),(22,3),(23,2)]),
-  ((id,lineto j), [(20,3),(21,3),(22,3),(23,3)]),
-  ((id,lineto k), [(20,2),(21,3),(22,1),(23,0)])
+  lineto = \n -> head (map mysnd (filter (\line -> myfst line == juncID && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == juncID) lineInfo))
+junctionConstraints ((T i j k juncID):xs) lineInfo      = ((juncID,[Val 20, Val 21, Val 22,Val 23]):doms,[
+  ((juncID,lineto i), [(Val 20,Val 2), (Val 21,Val 2), (Val 22,Val 3), (Val 23,Val 2)]),
+  ((juncID,lineto j), [(Val 20,Val 3), (Val 21,Val 3), (Val 22,Val 3), (Val 23,Val 3)]),
+  ((juncID,lineto k), [(Val 20,Val 2), (Val 21,Val 3), (Val 22,Val 1), (Val 23,Val 0)])
   ] ++ cons) where
   (doms, cons) = junctionConstraints xs lineInfo
-  lineto = \n -> head (map mysnd (filter (\line -> myfst line == id && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == id) lineInfo))
-junctionConstraints ((Arrow i j k id):xs) lineInfo  = ((id,[30..32]):doms,[
-  ((id,lineto i), [(30,3),(31,1),(32,0)]),
-  ((id,lineto j), [(30,2),(31,1),(32,0)]),
-  ((id,lineto k), [(30,1),(31,0),(32,1)])
+  lineto = \n -> head (map mysnd (filter (\line -> myfst line == juncID && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == juncID) lineInfo))
+junctionConstraints ((Arrow i j k juncID):xs) lineInfo  = ((juncID,[Val 30, Val 31, Val 32]):doms,[
+  ((juncID,lineto i), [(Val 30,Val 3), (Val 31,Val 1), (Val 32,Val 0)]),
+  ((juncID,lineto j), [(Val 30,Val 2), (Val 31,Val 1), (Val 32,Val 0)]),
+  ((juncID,lineto k), [(Val 30,Val 1), (Val 31,Val 0), (Val 32,Val 1)])
   ] ++ cons) where
   (doms, cons) = junctionConstraints xs lineInfo
-  lineto = \n -> head (map mysnd (filter (\line -> myfst line == id && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == id) lineInfo))
+  lineto = \n -> head (map mysnd (filter (\line -> myfst line == juncID && myfrth line == n) lineInfo) ++ map mytrd (filter (\line -> myfst line == n && myfrth line == juncID) lineInfo))
 
--- The Object type is nice and readable, this function generates the correct csp. 
+-- The Object type is nice and relatively readable, this function generates the correct csp. 
 -- It preserves the JunctionIDs used in the Object def.
 -- !! Junctions must have positive IDs
 
 cspGenerator :: Object -> Problem
-cspGenerator object = CSP ([0..length allJuncDomains -1]++[-2*length lineInfo..(-1)]) (allJuncDomains ++ allLineDomains) (allJuncConstraints ++ allLineConstraints) where
-  lineInfo                              = lineGeneration object (-1) -- first line gets variable -1
+cspGenerator object = CSP (allJuncDomains ++ allLineDomains) allConstraints where
+
+  lineInfo                              = lineGeneration object (Var (-1)) -- first line gets variable -1
   (allJuncDomains, allJuncConstraints)  = junctionConstraints object lineInfo
-  allLineDomains      = concat [[(2*line,[0..3]),(2*line-1,[0..3])] | line <- [-length lineInfo..(-1)] ]
-  allLineConstraints  = [ ((2*line, 2*line-1), [(0,0),(1,1),(2,3),(3,2)]) | line <- [-length lineInfo..(-1)] ]
+  allLineDomains      = concat [ [(Var (2*line+1),[Val 0, Val 1, Val 2, Val 3]),(Var (2*line),[Val 0, Val 1, Val 2, Val 3])] | line <- [-length lineInfo..(-1)] ]
+  allLineConstraints  = [ ((Var (2*line)+1, Var (2*line)), [(Val 0,Val 0), (Val 1,Val 1), (Val 2,Val 3), (Val 3,Val 2)]) | line <- [-length lineInfo..(-1)] ]
+  allConstraints = allJuncConstraints ++ allLineConstraints ++ map reflectConstraint allJuncConstraints ++ map reflectConstraint allLineConstraints
+  reflectConstraint = \(arc, rel) -> (swap arc, map swap rel) -- we need arcs to be included in both directions. 
 
 
 -- Input the outline arrows as a first step. A line with arrow leaving a vertex will get Val 3, an incoming line gets Val 2
--- The third argument is the list of Junction pairs we identify as outline.
+-- The third argument is the list of Junction pairs we identify as outline. For small cases could this have been a single path like 0 - 9 - 3, but larger cases can have disconnected paths
 setOutlineArrows :: [Domain] -> [(JunctionID,LineID,LineID,JunctionID)] -> [(JunctionID,JunctionID)] -> [Domain]
 setOutlineArrows doms _ []              = doms
 setOutlineArrows doms lineInfo ((x,y):xs) 
                   -- the following is safe if our list of border junctions is actually a path on the object, since:
                   -- if x<y we will have (x,i,i-1,y) in our lineInfo, otherwise we will have (y,i,i-1,x) as an element.
-                              | x<y       = let Just (_,i,_,_) = find (\line -> myfst line == x && myfrth line == y) lineInfo in 
-                                  (i,[3]):(i-1,[2]):delete (i,[0..3]) (delete (i-1,[0..3]) (setOutlineArrows doms lineInfo xs))
+                              | getVar x < getVar y       = let Just (_,i,_,_) = find (\line -> myfst line == x && myfrth line == y) lineInfo in 
+                                  (i,[Val 3]):(Var (getVar i-1),[Val 2]):
+                                    delete (i,[Val 0, Val 1, Val 2, Val 3]) (delete (Var (getVar i-1),[Val 0, Val 1, Val 2, Val 3]) (setOutlineArrows doms lineInfo xs))
                               | otherwise = let Just (_,i,_,_) = find (\line -> myfst line == y && myfrth line == x) lineInfo in 
-                                  (i,[2]):(i-1,[3]):delete (i,[0..3]) (delete (i-1,[0..3]) (setOutlineArrows doms lineInfo xs))
+                                  (i,[Val 2]):(Var (getVar i-1),[Val 3]):
+                                    delete (i,[Val 0, Val 1, Val 2, Val 3]) (delete (Var (getVar i-1),[Val 0, Val 1, Val 2, Val 3]) (setOutlineArrows doms lineInfo xs))
 
-cube :: Object
-cube = [Arrow 1 5 6 0, L 0 2 1, Arrow 3 1 6 2, L 2 4 3, Arrow 5 3 6 4, L 4 0 5, Fork 0 2 4 6]
+cube :: Object -- Passes our object criteria so should return True, junction Var 6 is the middle Fork, should get Val 10
+cube = [Arrow (Var 1) (Var 5) (Var 6) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 3) (Var 1) (Var 6) (Var 2), L (Var 2) (Var 4) (Var 3), 
+        Arrow (Var 5) (Var 3) (Var 6) 4, L (Var 4) (Var 0) (Var 5), Fork (Var 0) (Var 2) (Var 4) (Var 6)]
 
-cubeOutline :: [(JunctionID,JunctionID)]
-cubeOutline = [(0,1),(1,2),(2,3),(3,4),(4,5),(5,0)]
+cubeOutline :: [(JunctionID,JunctionID)] 
+cubeOutline = [(Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 3), (Var 3, Var 4), (Var 4, Var 5), (Var 5, Var 0)]
 
-cubeCSPtest :: Problem 
-cubeCSPtest = CSP vars (setOutlineArrows doms (lineGeneration cube (-1)) cubeOutline) cons
-  where CSP vars doms cons = cspGenerator cube
+testfig18 :: Object -- Should return False, since Domain of center junction Var 9 will be empty
+testfig18 = [Arrow (Var 1) (Var 2) (Var 3) (Var 0), L (Var 0) (Var 4) (Var 1), L (Var 7) (Var 0) (Var 2), Fork (Var 0) (Var 8) (Var 9) (Var 3),
+             Arrow (Var 5) (Var 1) (Var 6) (Var 4), L (Var 4) (Var 7) (Var 5), Fork (Var 8) (Var 7) (Var 4) (Var 6), 
+             Arrow (Var 2) (Var 5) (Var 6) (Var 7), Arrow (Var 3) (Var 6) (Var 9) (Var 8), L (Var 3) (Var 8) (Var 9)]
 
-ac3input = let CSP vars doms cons = cspGenerator cube in (cubeCSPtest, True, cons)
+testfig18Outline = [(Var 0, Var 1), (Var 1, Var 4), (Var 4, Var 5), (Var 5, Var 7), (Var 7, Var 2), (Var 2, Var 0)]
+
+testfig12A :: Object -- Test including a T junction. Should return True. 
+testfig12A = [Arrow (Var 1) (Var 8) (Var 9) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 4) (Var 1) (Var 3) (Var 2), L (Var 4) (Var 2) (Var 3),
+              T (Var 3) (Var 5) (Var 2) (Var 4), Arrow (Var 6) (Var 4) (Var 9) (Var 5), L (Var 5) (Var 7) (Var 6), 
+              Arrow (Var 8) (Var 6) (Var 9) (Var 7), L (Var 7) (Var 0) (Var 8), Fork (Var 0) (Var 7) (Var 5) (Var 9)]
+
+testfig12AOutline :: [(JunctionID,JunctionID)]
+testfig12AOutline = [(Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 4), (Var 4, Var 5), (Var 5, Var 6), (Var 6, Var 7), (Var 7, Var 8), (Var 8, Var 0)]
+
+ac3input :: Object -> [(JunctionID, JunctionID)] -> (Problem, Bool, [Constraint])
+ac3input object outline = let CSP doms cons = cspGenerator object in (CSP (setOutlineArrows doms (lineGeneration object (-1)) outline) cons, True, cons)
+
+-- Output of ac3 to Int instead of Var
+ac3GetVar :: (Problem,Bool ,a) -> (Bool,[(Int, [Value])],[((Int,Int),[(Value,Value)])])
+ac3GetVar (CSP doms cons, bool, _) = (bool, map (\(var,vals) -> (getVar var, vals))  doms, map (\((x,y),pairs) -> ((getVar x, getVar y),pairs)) cons)
 
 \end{code}
