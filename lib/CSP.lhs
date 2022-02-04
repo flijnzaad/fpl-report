@@ -25,7 +25,9 @@ Therefore, in our implementation a CSP is just the pair $\langle D, C \rangle $.
 
 module CSP where
 
-newtype Variable = Var { getVar :: Int } deriving (Eq, Show, Ord, Num)
+newtype Variable = Var { getVar :: Int } deriving (Eq, Ord, Num)
+instance Show Variable where
+  show x = show (getVar x)
 newtype Value    = Val { getVal :: Int } deriving (Eq, Ord, Num)
 instance Show Value where
   show x = show (getVal x)

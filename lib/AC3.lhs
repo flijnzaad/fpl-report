@@ -51,12 +51,12 @@ ac3 (p@(CSP doms cons), True, ((x, y), rel):queue) =
 Since the \verb|ac3| function outputs a full CSP, it is useful for practical applications to have a wrapper function that calls \verb|ac3| and only outputs the list of domains. Moreover, it is useful to have this list be sorted, since during execution of the AC-3 algorithm, the list of domains has been scrambled.
 
 \begin{code}
-ac3domain :: [Domain] -> [Constraint] -> [Domain]
-ac3domain doms cons =
+arcConsistentDomain :: Problem -> [Domain]
+arcConsistentDomain problem@(CSP _ cons) =
   if succeeded
     then
       sortBy (\(a,_) (b,_) -> compare a b) y
     else []
   where
-    (CSP y _, succeeded, _) = ac3 (CSP doms cons, True, cons)
+    (CSP y _, succeeded, _) = ac3 (problem, True, cons)
 \end{code}
