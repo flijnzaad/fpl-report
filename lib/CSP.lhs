@@ -25,17 +25,13 @@ Therefore, in our implementation a CSP is just the pair $\langle D, C \rangle $.
 
 module CSP where
 
-import Data.List -- for using "sort"
-
 newtype Variable = Var { getVar :: Int } deriving (Eq, Ord, Num)
 instance Show Variable where
   show x = show (getVar x)
 newtype Value    = Val { getVal :: Int } deriving (Eq, Ord, Num)
 instance Show Value where
   show x = show (getVal x)
-newtype Domain   = Dom (Variable, [Value]) deriving (Show)
-instance Eq Domain where
-  (Dom x) == (Dom y) = (fst x == fst y) && (nub (sort (snd x)) == nub (sort (snd y)))
+type Domain      = (Variable, [Value])
 type Arc         = (Variable, Variable)
 type Constraint  = ( Arc, [(Value, Value)] )
 data Problem     = CSP { domains     :: [Domain]
