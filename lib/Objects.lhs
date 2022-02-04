@@ -4,7 +4,7 @@ This chapter is based on a task described in Chapter 12 of \cite{winston1992}: \
 The task consists of deciding whether a given set of lines define an object without curved faces and of classifying the lines as either convex, concave or boundary edges.
 There is no shading involved, but an object can partially block the view of itself or other objects.
 The vertices at which the lines meet are restricted in such a way that they have a maximum of three adjacent faces. 
-The viewpoint of the ``observer" doesn't give any ``illusions" like lines or vertices that overlap.
+The viewpoint of the ``observer'' doesn't give any ``illusions'' like lines or vertices that overlap.
 This is not a heavy restriction, since in a real world scenario one could accomplish this by a small change of prespective.
 
 \begin{code}
@@ -34,12 +34,12 @@ This could also be done as a preprocessing step by another script, but that is n
 
 For the labeling of a junction we use the orientation used in Figure 12.14 of \cite[p.259]{winston1992}, and first label the JunctionID in the rightmost direction. 
 We then go anticlockwise labeling the next (two) junction(s). The final JunctionID is that of the junction itself. 
-So e.g. Arrow (Var 8) (Var 4) (Var 5) (Var 1), would be an Arrow junction with JunctionID Var 1, and the junction in the direction of the "shaft" of the arrow has JunctionID Var 4. 
+So e.g. Arrow (Var 8) (Var 4) (Var 5) (Var 1), would be an Arrow junction with JunctionID Var 1, and the junction in the direction of the ``shaft'' of the arrow has JunctionID Var 4. 
 For a complete explanation the reader should read the beforementioned chapter. 
 
 To solve this task we add not one, but two variables for lines between two connected junctions. These lines are connected to eachother and one to each junction at the endpoints.
-When one of these lines is labeled as a "+" (convex edge) or "-" (concave), the other will be as well. For the boundary arrows we use a different label for each: 
-when an arrow should go from junction 1 to junction 2, we label the line variable adjacent to junction 1 as ``outgoing" and label the other line variable as ``incoming".
+When one of these lines is labeled as a ``+'' (convex edge) or ``-'' (concave), the other will be as well. For the boundary arrows we use a different label for each: 
+when an arrow should go from junction 1 to junction 2, we label the line variable adjacent to junction 1 as ``outgoing'' and label the other line variable as ``incoming''.
 
 We can use arc consistency to solve most of these problems: for many junctions knowledge of the labels of two of its adjacent lines will tell us which junction we are dealing with, and then we know the label of the other line.
 Propagating this process will add more and more labels, until (hopefully) all lines are labeled. 
