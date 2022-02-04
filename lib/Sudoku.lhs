@@ -113,7 +113,7 @@ ac3SudokuFromFile = do
   sudokuString <- readFile "sudoku/sudoku.txt"
   let values = map (Val . digitToInt) sudokuString
   do
-    let sudoku = ac3domain (genSudokuDoms values) (genSudokuCons (map Var [0..80]))
+    let sudoku = arcConsistentDomain (CSP (genSudokuDoms values) (genSudokuCons (map Var [0..80])))
     if not $ null sudoku
     then printSudoku sudoku
     else putStrLn "This sudoku has no solution."
