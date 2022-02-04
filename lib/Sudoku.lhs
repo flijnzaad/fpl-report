@@ -22,10 +22,8 @@ Although a representation of a square as its coordinates within the grid is a na
 Therefore, we represent the 81 squares of the grid as numbers between 0 and 80, numbered from left to right from top to bottom.
 As we will see in a bit, for determining the constraints on a square it is useful to use the coordinate notation.
 
-The domain of each empty square of a sudoku is $\{ 1, \ldots, 9 \}$; the domain of a square filled with some $x$ is $\{x\}$.
+The domain of each empty square of a sudoku (which we represent in our input as \verb|0|) is $\{ 1, \ldots, 9 \}$; the domain of a square filled with some $x$ is $\{x\}$.
 Since a \verb|Domain| in our \verb|CSP| definition also consists of the variable's \verb|Int|, the following code also computes the `index' of the square as a number between 0 and 80.
-
-\todo[inline]{say something about the Python code and its formatting: we input the sudoku we want to solve as a string where empty cells are zeroes, a zero means the starting domain can be anything in $\{ 1, \ldots, 9 \}$, if the cell is given its domain has just that element}
 
 \begin{code}
 genSudokuDoms :: [Value] -> [Domain]
@@ -105,12 +103,11 @@ printSudoku ((n, val@(value:_)):xs) =
 printSudoku _ = putStr ""
 \end{code}
 
-\todo[inline]{add explanations here}
+Now the function \verb|ac3SudokuFromFile| ties this all together: when called it reads in a sudoku, applies the AC-3 algorithm and prints the result.
 
 The code that generates an unsolved sudoku (see Appendix~\ref{app:sudoku}) writes a string of digits to the file \verb|sudoku/sudoku.txt|. These digits are in the same order as the squares are numbered with variables. This input is converted to a list of \verb|Val|s, and \verb|ac3domain| is called using the functions for generating domains and constraints for this particular sudoku. If the sudoku has a solution\footnote{which a sudoku produced by the Appendix~\ref{app:sudoku} code always will have}, the result is printed with \verb|printSudoku|; if not (if the domain returned by \verb|ac3domain| is empty), a message on the screen will indicate this fact.
 
 \begin{code}
--- solves the available sudoku in "sudoku.txt" in the "sudoku/" subdirectory
 ac3SudokuFromFile :: IO ()
 ac3SudokuFromFile = do
   sudokuString <- readFile "sudoku/sudoku.txt"
