@@ -14,7 +14,6 @@ import CSP
 import AC3
 import Data.List
 import Data.Tuple
-import Data.Ord
 
 type LineID     = Variable
 type JunctionID = Variable
@@ -26,7 +25,7 @@ data Junction   = L JunctionID JunctionID JunctionID
                 | Arrow JunctionID JunctionID JunctionID JunctionID
 
 type Object     = [Junction] 
-type Outline    = [(JuctionID,JunctionID)]
+type Outline    = [(JunctionID,JunctionID)]
 \end{code}
 
 When a real object has its lines labeled correctly, there are only 18 possible junctions, as identified in Figure 12.14 of \cite[p.259]{winston1992}.
@@ -141,24 +140,24 @@ setOutlineArrows doms lineInfo ((x,y):xs)
 
 -- Increase readability of output of ac3. We remove the (empty) queue and show the Int instead of Var Int.
 ac3onObject :: (Object, Outline) -> (Bool,[(Int, [Value])],[((Int,Int),[(Value,Value)])])
-ac3onObject (object, outline) = (bool, map (\(var,vals) -> (getVar var, vals))  doms, map (\((x,y),pairs) -> ((getVar x, getVar y),pairs)) cons) where 
-  CSP doms cons = cspGenerator object
-  (CSP doms cons, bool, _) = ac3 (setOutlineArrows doms (lineGeneration object (-1)) outline) cons, True, cons) 
+ac3onObject (object, outline) = (bool, map (\(var,vals) -> (getVar var, vals)) doms, map (\((x,y),pairs) -> ((getVar x, getVar y),pairs)) cons) where 
+  CSP initdoms initcons = cspGenerator object
+  (CSP doms cons, bool, _) = ac3 (CSP (setOutlineArrows initdoms (lineGeneration object (-1)) outline) initcons, True, initcons) 
 \end{code}
 
 \begin{code}
-cube :: (Object, Outline) -- As in Fig 12.15, labeling clockwise starting at the upper left junction. Passes our object criteria so should return True. Junction Var 6 is the middle Fork.
+cube :: (Object, Outline) -- As in Winston1992 Fig 12.15. Labeled clockwise starting at the upper left junction. Passes our object criteria so should return True.
 cube = ([ Arrow (Var 1) (Var 5) (Var 6) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 3) (Var 1) (Var 6) (Var 2), L (Var 2) (Var 4) (Var 3), 
         Arrow (Var 5) (Var 3) (Var 6) 4, L (Var 4) (Var 0) (Var 5), Fork (Var 0) (Var 2) (Var 4) (Var 6)],
         [ (Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 3), (Var 3, Var 4), (Var 4, Var 5), (Var 5, Var 0) ])
 
-testfig18 :: (Object,Outline) -- As in Fig 12.18. Should return False, since Domain of center junction Var 9 will be empty
+testfig18 :: (Object,Outline) -- As in Fig 12.18. Should return False, since as shown in Winston1992 Fig 12.18 there is no possible labeling of the middle junction.
 testfig18 = ([ Arrow (Var 1) (Var 2) (Var 3) (Var 0), L (Var 0) (Var 4) (Var 1), L (Var 7) (Var 0) (Var 2), Fork (Var 0) (Var 8) (Var 9) (Var 3),
              Arrow (Var 5) (Var 1) (Var 6) (Var 4), L (Var 4) (Var 7) (Var 5), Fork (Var 8) (Var 7) (Var 4) (Var 6), 
              Arrow (Var 2) (Var 5) (Var 6) (Var 7), Arrow (Var 3) (Var 6) (Var 9) (Var 8), L (Var 3) (Var 8) (Var 9)],
              [ (Var 0, Var 1), (Var 1, Var 4), (Var 4, Var 5), (Var 5, Var 7), (Var 7, Var 2), (Var 2, Var 0) ])
 
-testfig12A :: (Object,Outline) -- Test including a T junction. Should return True. 
+testfig12A :: (Object,Outline) -- Test including a T junction. This is from the perspective of observer A in Fig 12.12 in Winston1992.
 testfig12A = ([ Arrow (Var 1) (Var 8) (Var 9) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 4) (Var 1) (Var 3) (Var 2), L (Var 4) (Var 2) (Var 3),
               T (Var 3) (Var 5) (Var 2) (Var 4), Arrow (Var 6) (Var 4) (Var 9) (Var 5), L (Var 5) (Var 7) (Var 6), 
               Arrow (Var 8) (Var 6) (Var 9) (Var 7), L (Var 7) (Var 0) (Var 8), Fork (Var 0) (Var 7) (Var 5) (Var 9) ],
