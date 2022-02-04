@@ -8,21 +8,29 @@ import AC3
 import Data.List
 import Data.Tuple
 import Data.Ord
-import Data.Char
 
--- Variables: Lines have negative IDs, junctions positive IDs
+
 -- Values:    Lines: 0 = "-", 1 = "+", 2 = "incoming <", 3 = "outgoing >"
 --         Junction: 0-5 = "L junction", 10-15 = "Fork", 20-23 = "T junction", 30-33 = "Arrow"
 
 type LineID     = Variable
 type JunctionID = Variable
-data Junction   = L JunctionID JunctionID JunctionID 
+-- We are going to give lines negative IDs and junctions non-negative IDs
+data Junction   = L JunctionID JunctionID JunctionID  
                 | Fork JunctionID JunctionID JunctionID JunctionID 
                 | T JunctionID JunctionID JunctionID JunctionID 
                 | Arrow JunctionID JunctionID JunctionID JunctionID
-data Line       = Line JunctionID LineID LineID
-type Object = [Junction] 
+\end{code}
 
+For the labeling of a Junction we use the orientation used in Figure 12.14 of \cite[p.259]{winston1992}, and first label the JunctionID in the rightmost direction. 
+Then we go anticlockwise (positive arc) labeling the next (two). The final JunctionID is that of the Junction itself. 
+So e.g. Arrow (Var 8) (Var 4) (Var 5) (Var 1), would be an Arrow junction with JunctionID Var 1, and the junction in the direction of the "shaft" of the arrow has JunctionID Var 4
+
+\begin{code}
+type Object     = [Junction] 
+type Outline    = [(JuctionID,JunctionID)] -- Outline
+
+-- We are going to work with 4-tuples of this type, these projections make that a bit easier
 myfst, myfrth :: (JunctionID,LineID,LineID,JunctionID) -> JunctionID
 mysnd, mytrd  :: (JunctionID,LineID,LineID,JunctionID) -> LineID
 
@@ -90,9 +98,8 @@ cspGenerator object = CSP (allJuncDomains ++ allLineDomains) allConstraints wher
   reflectConstraint = \(arc, rel) -> (swap arc, map swap rel) -- we need arcs to be included in both directions. 
 
 
--- Input the outline arrows as a first step. A line with arrow leaving a vertex will get Val 3, an incoming line gets Val 2
--- The third argument is the list of Junction pairs we identify as outline. For small cases could this have been a single path like 0 - 9 - 3, but larger cases can have disconnected paths
-setOutlineArrows :: [Domain] -> [(JunctionID,LineID,LineID,JunctionID)] -> [(JunctionID,JunctionID)] -> [Domain]
+-- Restrict the domains of the outline. A line with arrow leaving a vertex will get Val 3, an incoming line gets Val 2.
+setOutlineArrows :: [Domain] -> [(JunctionID,LineID,LineID,JunctionID)] -> Outline -> [Domain]
 setOutlineArrows doms _ []              = doms
 setOutlineArrows doms lineInfo ((x,y):xs) 
                   -- the following is safe if our list of border junctions is actually a path on the object, since:
@@ -104,33 +111,28 @@ setOutlineArrows doms lineInfo ((x,y):xs)
                                   (i,[Val 2]):(Var (getVar i-1),[Val 3]):
                                     delete (i,[Val 0, Val 1, Val 2, Val 3]) (delete (Var (getVar i-1),[Val 0, Val 1, Val 2, Val 3]) (setOutlineArrows doms lineInfo xs))
 
-cube :: Object -- Passes our object criteria so should return True, junction Var 6 is the middle Fork, should get Val 10
-cube = [Arrow (Var 1) (Var 5) (Var 6) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 3) (Var 1) (Var 6) (Var 2), L (Var 2) (Var 4) (Var 3), 
-        Arrow (Var 5) (Var 3) (Var 6) 4, L (Var 4) (Var 0) (Var 5), Fork (Var 0) (Var 2) (Var 4) (Var 6)]
+cube :: (Object, Outline) -- Passes our object criteria so should return True, junction Var 6 is the middle Fork, should get Val 10
+cube = ([ Arrow (Var 1) (Var 5) (Var 6) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 3) (Var 1) (Var 6) (Var 2), L (Var 2) (Var 4) (Var 3), 
+        Arrow (Var 5) (Var 3) (Var 6) 4, L (Var 4) (Var 0) (Var 5), Fork (Var 0) (Var 2) (Var 4) (Var 6)],
+        [ (Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 3), (Var 3, Var 4), (Var 4, Var 5), (Var 5, Var 0) ])
 
-cubeOutline :: [(JunctionID,JunctionID)] 
-cubeOutline = [(Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 3), (Var 3, Var 4), (Var 4, Var 5), (Var 5, Var 0)]
-
-testfig18 :: Object -- Should return False, since Domain of center junction Var 9 will be empty
-testfig18 = [Arrow (Var 1) (Var 2) (Var 3) (Var 0), L (Var 0) (Var 4) (Var 1), L (Var 7) (Var 0) (Var 2), Fork (Var 0) (Var 8) (Var 9) (Var 3),
+testfig18 :: (Object,Outline) -- Should return False, since Domain of center junction Var 9 will be empty
+testfig18 = ([ Arrow (Var 1) (Var 2) (Var 3) (Var 0), L (Var 0) (Var 4) (Var 1), L (Var 7) (Var 0) (Var 2), Fork (Var 0) (Var 8) (Var 9) (Var 3),
              Arrow (Var 5) (Var 1) (Var 6) (Var 4), L (Var 4) (Var 7) (Var 5), Fork (Var 8) (Var 7) (Var 4) (Var 6), 
-             Arrow (Var 2) (Var 5) (Var 6) (Var 7), Arrow (Var 3) (Var 6) (Var 9) (Var 8), L (Var 3) (Var 8) (Var 9)]
+             Arrow (Var 2) (Var 5) (Var 6) (Var 7), Arrow (Var 3) (Var 6) (Var 9) (Var 8), L (Var 3) (Var 8) (Var 9)],
+             [ (Var 0, Var 1), (Var 1, Var 4), (Var 4, Var 5), (Var 5, Var 7), (Var 7, Var 2), (Var 2, Var 0) ])
 
-testfig18Outline = [(Var 0, Var 1), (Var 1, Var 4), (Var 4, Var 5), (Var 5, Var 7), (Var 7, Var 2), (Var 2, Var 0)]
-
-testfig12A :: Object -- Test including a T junction. Should return True. 
-testfig12A = [Arrow (Var 1) (Var 8) (Var 9) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 4) (Var 1) (Var 3) (Var 2), L (Var 4) (Var 2) (Var 3),
+testfig12A :: (Object,Outline) -- Test including a T junction. Should return True. 
+testfig12A = ([ Arrow (Var 1) (Var 8) (Var 9) (Var 0), L (Var 0) (Var 2) (Var 1), Arrow (Var 4) (Var 1) (Var 3) (Var 2), L (Var 4) (Var 2) (Var 3),
               T (Var 3) (Var 5) (Var 2) (Var 4), Arrow (Var 6) (Var 4) (Var 9) (Var 5), L (Var 5) (Var 7) (Var 6), 
-              Arrow (Var 8) (Var 6) (Var 9) (Var 7), L (Var 7) (Var 0) (Var 8), Fork (Var 0) (Var 7) (Var 5) (Var 9)]
+              Arrow (Var 8) (Var 6) (Var 9) (Var 7), L (Var 7) (Var 0) (Var 8), Fork (Var 0) (Var 7) (Var 5) (Var 9) ],
+              [ (Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 4), (Var 4, Var 5), (Var 5, Var 6), (Var 6, Var 7), (Var 7, Var 8), (Var 8, Var 0) ])
 
-testfig12AOutline :: [(JunctionID,JunctionID)]
-testfig12AOutline = [(Var 0, Var 1), (Var 1, Var 2), (Var 2, Var 4), (Var 4, Var 5), (Var 5, Var 6), (Var 6, Var 7), (Var 7, Var 8), (Var 8, Var 0)]
-
-ac3input :: Object -> [(JunctionID, JunctionID)] -> (Problem, Bool, [Constraint])
+ac3input :: (Object, Outline) -> (Problem, Bool, [Constraint])
 ac3input object outline = let CSP doms cons = cspGenerator object in (CSP (setOutlineArrows doms (lineGeneration object (-1)) outline) cons, True, cons)
 
 -- Output of ac3 to Int instead of Var
-ac3GetVar :: (Problem,Bool ,a) -> (Bool,[(Int, [Value])],[((Int,Int),[(Value,Value)])])
-ac3GetVar (CSP doms cons, bool, _) = (bool, map (\(var,vals) -> (getVar var, vals))  doms, map (\((x,y),pairs) -> ((getVar x, getVar y),pairs)) cons)
-
+ac3onObject :: (Object, Outline) -> (Bool,[(Int, [Value])],[((Int,Int),[(Value,Value)])])
+ac3onObject (object, outline) = (bool, map (\(var,vals) -> (getVar var, vals))  doms, map (\((x,y),pairs) -> ((getVar x, getVar y),pairs)) cons)
+  where (CSP doms cons, bool, _) = ac3 (ac3input (object, outline))
 \end{code}
