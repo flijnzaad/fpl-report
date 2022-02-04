@@ -1,12 +1,8 @@
 \section{Sudokus}
 
-Sudokus are a well-known constraint satisfaction problem: each square of the $9 \times 9$ grid is constrained by the squares in the same row, the same column, and the same $3 \times 3$ block.
-In order to use the AC-3 algorithm on sudokus, the sudoku first needs to be represented as a constraint satisfaction problem (see \cref{sec:CSP}).
+Sudokus are a well-known constraint satisfaction problem: each square of the $9 \times 9$ grid of digits is constrained by the squares in the same row, the same column, and the same $3 \times 3$ block.
+In order to use the AC-3 algorithm on sudokus, the sudoku first needs to be represented as a (binary) constraint satisfaction problem (see \cref{sec:CSP}).
 In order to do so, the variables, domains and constraints of the problem need to be specified.
-
-\paragraph{Intermezzo: generating sudokus}
-
-In order to later test our representation of a sudoku as a CSP and subsequently test our implementation of the AC-3 algorithm (and avoid having to type in sudokus manually), we needed a program that generates sudokus in plaintext. We found a Python script that does just this, and adapted it to fit our program; see Appendix~\ref{app:sudoku} for its code and a short explanation of its workings.
 
 \begin{code}
 module Sudoku where
@@ -18,12 +14,18 @@ import Data.Maybe    -- for using "fromJust"
 import Control.Monad -- for using "when"
 \end{code}
 
+\paragraph{Intermezzo: generating sudokus}
+
+In order to later test our representation of a sudoku as a CSP and subsequently test our implementation of the AC-3 algorithm (and avoid having to type in sudokus manually), we need a program that generates sudokus in plaintext. We have found a Python script that does just this, and adapted it to fit our program; see Appendix~\ref{app:sudoku} for its code and a short explanation of its workings.
+
+\vspace{1em}
+
 Although a representation of a square as its coordinates within the grid is a natural one, our definition of a CSP calls for a variable to be an integer.
 Therefore, we represent the 81 squares of the grid as numbers between 0 and 80, numbered from left to right from top to bottom.
 As we will see in a bit, for determining the constraints on a square it is useful to use the coordinate notation.
 
-The domain of each empty square of a sudoku (which we represent in our input as \verb|0|) is $\{ 1, \ldots, 9 \}$; the domain of a square filled with some $x$ is $\{x\}$.
-Since a \verb|Domain| in our \verb|CSP| definition also consists of the variable's \verb|Int|, the following code also computes the `index' of the square as a number between 0 and 80.
+The domain of each empty square of a sudoku (which we represent in our input as \verb|0|) is $\{ 1, \ldots, 9 \}$; the domain of a square filled with some digit $x$ is $\{x\}$.
+Since a \verb|Domain| in our \verb|CSP| definition also consists of the variable's \verb|Var Int|, the following code also computes the `index' of the square as a number between 0 and 80.
 
 \begin{code}
 genSudokuDoms :: [Value] -> [Domain]
@@ -35,7 +37,7 @@ genSudokuDoms (x:xs)
 
 Arguably the most interesting part now is how the constraints for each variable are generated.
 To be able to formulate the constraints in an intuitive way, the function \verb|varToCoords| takes a variable and returns a tuple of its $x$- and $y$-coordinates within the $9 \times 9$ grid.
-\verb|varToCoords| functions as a wrapper around the \verb|varGrid| to eliminate some duplicate code.
+\verb|varToCoords| functions as a wrapper around the \verb|varGrid| to eliminate duplicate code later on.
 
 \begin{code}
 varGrid :: [(Variable, (Int, Int))]
@@ -44,7 +46,7 @@ varToCoords :: Variable -> (Int, Int)
 varToCoords n = fromJust $ lookup n varGrid
 \end{code}
 
-Now, the function \verb|genSudokuCons| takes the list of all variables of the sudoku, and returns the list of constraints for the sudoku. It creates this list of constraints by working through the list of variables one by one and generating all constraints for each variable.
+Now, the function \verb|genSudokuCons| (generate sudoku constraints) takes the list of all variables of the sudoku, and returns the list of constraints for the sudoku. It creates this list of constraints by working through the list of variables one by one and generating all constraints for each variable.
 As said before, each square on the grid is constrained by its row, column and $3 \times 3$ block.
 So a variable $n$ is a member of all arcs $\langle n, x \rangle$ where $x$ is a variable in the same row, column or block.
 The allowable values for the pair $\langle n, x \rangle$ are then all $y_1, y_2 \in \{ 1, \ldots, 9 \}$ such that $y_1 \neq y_2$.

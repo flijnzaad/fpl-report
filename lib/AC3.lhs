@@ -1,6 +1,6 @@
 \section{The AC-3 algorithm}\label{sec:ac3}
 
-This functional implementation of the AC-3 algorithm is based on the imperative pseudocode in \cite[p.~209]{AIMA}.
+Our functional implementation of the AC-3 algorithm is based on the imperative pseudocode in \cite[p.~209]{AIMA}.
 
 The implementation makes use of the auxiliary function \verb|getVarDomain|.
 When given a variable and a list of domains, it returns the domain of that variable. It performs \verb|lookup| on the list of domains and returns not only the second argument of the relevant tuple (which is a list of values), but the whole tuple (the whole domain). Moreover, it uses \verb|fromJust| to strip the domain of its \verb|Just|. Generally, this is not safe to do, but in this implementation we are certain that the \verb|lookup| will never return \verb|Nothing|: the use of \verb|getVarDomain| is restricted to cases where we are certain that the variable to look up is actually present in the list.
@@ -16,8 +16,8 @@ getVarDomain :: Variable -> [Domain] -> Domain
 getVarDomain var doms = let dom = fromJust $ lookup var doms in (var, dom)
 \end{code}
 
-The \verb|ac3| function takes as input a tuple containing the full CSP, a Boolean flag and a queue of constraints. The Boolean flag is the true or false that the algorithm returns as described in \cref{sec:arc-consistency}.
-The queue of constraints more or less functions as a to-do list, containing the arcs of which the consistency needs to be checked still.
+The \verb|ac3| function takes as input a tuple containing the full CSP, a Boolean flag and a queue of constraints. The Boolean flag is the true or false that the algorithm returns, as described in \cref{sec:arc-consistency}.
+The queue of constraints more or less functions as a to-do list, containing the arcs of which the consistency still needs to be checked.
 When first calling the function, this queue contains all constraints of the CSP; when the queue of constraints is empty, the CSP is arc-consistent.
 If at any point during the recursion the Boolean flag is set to false, this means that the domain of a variable is empty and the CSP has no solution. In this case, there is no point in continuing the recursion, so it is halted.
 
@@ -27,7 +27,7 @@ ac3 (p, False, _) = (p, False, [])
 ac3 (p, True, []) = (p, True,  [])
 \end{code}
 
-In the recursive case, the first constraint $C = \langle \langle x, y \rangle, R \rangle$ in the constraint queue is considered.
+In the recursive case of the \verb|ac3| function, the first constraint $C = \langle \langle x, y \rangle, R \rangle$ in the constraint queue is considered.
 The arc $\langle x, y \rangle$ of $C$ is then `revised' based on this constraint:
 the domain of $x$ is restricted to those values that satisfy the constraint $C$. More specifically, the new domain for $x$, \verb|newXDomain|, is such that those $x' \in D_x$ are kept for which $\exists y' \in D_y$ such that $\langle x', y' \rangle \in R$.
 
@@ -48,7 +48,8 @@ ac3 (p@(CSP doms cons), True, ((x, y), rel):queue) =
     newQueue = queue ++ filter (\(arc, _) -> snd arc == x) cons
 \end{code}
 
-Since the \verb|ac3| function outputs a full CSP, it is useful for practical applications to have a wrapper function that calls \verb|ac3| and only outputs the list of domains. Moreover, it is useful to have this list be sorted, since during execution of the AC-3 algorithm, the list of domains has been scrambled.
+Since the \verb|ac3| function outputs a full CSP, a Boolean flag and an empty queue of constraints, it is useful for practical applications to have a wrapper function that calls \verb|ac3| and only outputs the list of domains of the CSP. Moreover, it is useful to have this list be sorted, since during execution of the AC-3 algorithm, the list of domains has been scrambled.
+What's more, this function ensures that if the Boolean flag is false, an empty list of domains is returned.
 
 \begin{code}
 arcConsistentDomain :: Problem -> [Domain]
